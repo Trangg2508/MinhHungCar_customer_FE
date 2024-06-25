@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Divider } from 'react-native-paper';
 import Swiper from 'react-native-swiper';
-import FeatherIcon from 'react-native-vector-icons/Feather';
+// import FeatherIcon from 'react-native-vector-icons/Feather';
 // import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 
@@ -70,10 +70,10 @@ export default function DetailScreen() {
                 onPress={() => {
                   // handle onPress
                 }}>
-                <FeatherIcon
+                {/* <FeatherIcon
                   color="#000"
                   name="arrow-left"
-                  size={24} />
+                  size={24} /> */}
               </TouchableOpacity>
             </View>
 
@@ -84,10 +84,10 @@ export default function DetailScreen() {
                 onPress={() => {
                   // handle onPress
                 }}>
-                <FeatherIcon
+                {/* <FeatherIcon
                   color="#000"
                   name="more-vertical"
-                  size={24} />
+                  size={24} /> */}
               </TouchableOpacity>
             </View>
           </View>
@@ -138,7 +138,7 @@ export default function DetailScreen() {
                 // handle onPress
               }}
               style={styles.picker}>
-              <FeatherIcon color="#000" name="calendar" size={18} />
+              {/* <FeatherIcon color="#000" name="calendar" size={18} /> */}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                 <View style={styles.pickerDates}>
                   <Text style={{ marginBottom: 2, color: "grey", fontSize: 15 }}>
@@ -164,7 +164,7 @@ export default function DetailScreen() {
                 // handle onPress
               }}
               style={styles.picker}>
-              <FeatherIcon color="#000" name="calendar" size={18} />
+              {/* <FeatherIcon color="#000" name="calendar" size={18} /> */}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                 <View style={styles.pickerDates}>
                   <Text style={{ marginBottom: 2, color: "grey", fontSize: 15 }}>
@@ -176,10 +176,10 @@ export default function DetailScreen() {
                 </View>
                 <View style={styles.pickerAction}>
                   <Text style={styles.pickerActionText}>Change</Text>
-                  <FeatherIcon
+                  {/* <FeatherIcon
                     color="#4C6CFD"
                     name="chevron-right"
-                    size={18} />
+                    size={18} /> */}
                 </View>
               </View>
 
@@ -190,11 +190,11 @@ export default function DetailScreen() {
 
               <View style={styles.infoRating}>
                 <Text style={styles.infoRatingLabel}>5.0</Text>
-
+                {/* 
                 <FeatherIcon
                   color="#4c6cfd"
                   name="star"
-                  size={15} />
+                  size={15} /> */}
 
                 <Text style={styles.infoRatingText}>(7 ratings)</Text>
               </View>
@@ -308,22 +308,22 @@ export default function DetailScreen() {
                       </View>
 
                       <View style={styles.commentRating}>
-                        <Image source={require('../assets/star.png')} style={{width: 20, height: 20}}/>
+                        <Image source={require('../assets/star.png')} style={{ width: 20, height: 20 }} />
                         <Text>5</Text>
                       </View>
                       <Text style={styles.commentText}>{item.text}</Text>
                     </View>
                   </View>
                 ))}
-                <TouchableOpacity 
-                style={styles.seeMoreContainer} 
-                onPress={() => {
+                <TouchableOpacity
+                  style={styles.seeMoreContainer}
+                  onPress={() => {
 
-                }}>
-                  
-                      <Text style={styles.seeMore}>Xem thêm</Text>
-                   
-                  </TouchableOpacity>
+                  }}>
+
+                  <Text style={styles.seeMore}>Xem thêm</Text>
+
+                </TouchableOpacity>
               </View>
 
 

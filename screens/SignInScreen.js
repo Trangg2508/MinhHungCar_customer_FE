@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+
+
+import React, { useContext, useState } from 'react';
 import {
   StyleSheet,
   SafeAreaView,
@@ -9,27 +11,34 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AntDesign } from '@expo/vector-icons';
+import { AuthConText } from '../store/auth-context';
+import AuthContent from '../components/Auth/AuthContent';
+import { getUser } from '../util/auth';
+import LoadingOverlay from '../components/UI/LoadingOverlay';
 
 export default function SignInScreen({ navigation }) {
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-  });
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
+  const authCtx = useContext(AuthConText)
 
-  const handleSubmit = () => {
-    if (!form.email || !form.password) {
-        Alert.alert('Error', 'All fields are required');
-        return;
+  const signInHandler = async ({ phone_number, password }) => {
+    setIsAuthenticating(true)
+    try {
+      const { token } = await getUser(phone_number, password)
+      console.log('token: ', token);
+      // console.log('id: ', userID);
+      authCtx.authenticate(token)
+    } catch (error) {
+
+      setIsAuthenticating(false)
     }
-    // Handle form submission, e.g., send data to an API
-    Alert.alert('Success', 'Form submitted successfully');
-  };
+  }
 
   return (
     // <SafeAreaView style={{ flex: 1 }}>
+
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      {isAuthenticating && <LoadingOverlay message='' />}
       <LinearGradient
         colors={['#5457FB', '#FFFFFF']}
         start={{ x: 0, y: 0 }}
@@ -37,97 +46,37 @@ export default function SignInScreen({ navigation }) {
         locations={[0.09, 0.84]}
         style={styles.gradient}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.container}>
-            <View style={styles.header}>
-              <Text style={styles.title}>Đăng nhập</Text>
-              <AntDesign name="stepforward" size={24} color="black" />
-              <Text style={styles.subtitle}></Text>
-            </View>
-            <View style={styles.form}>
-              <View style={styles.input}>
-                <Text style={styles.inputLabel}>Địa chỉ email</Text>
-                <TextInput
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  clearButtonMode="while-editing"
-                  keyboardType="email-address"
-                  onChangeText={email => setForm({ ...form, email })}
-                  placeholder="abc123@gmail.com"
-                  placeholderTextColor="#6b7280"
-                  style={styles.inputControl}
-                  value={form.email}
-                />
-              </View>
-              <View style={styles.input}>
-                <Text style={styles.inputLabel}>Mật khẩu</Text>
-                <TextInput
-                  autoCorrect={false}
-                  clearButtonMode="while-editing"
-                  onChangeText={password => setForm({ ...form, password })}
-                  placeholder="********"
-                  placeholderTextColor="#6b7280"
-                  style={styles.inputControl}
-                  secureTextEntry={true}
-                  value={form.password}
-                />
-              </View>
-              <View style={styles.formAction}>
-                <TouchableOpacity onPress={handleSubmit}>
-                  <View style={styles.btn}>
-                    <Text style={styles.btnText}>Đăng nhập</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.formActionSpacer}>hoặc tiếp tục với</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  // handle onPress
-                }}
-              >
-                <View style={styles.btnSecondary}>
-                  <MaterialCommunityIcons
-                    color="#000"
-                    name="google"
-                    size={22}
-                    style={{ marginRight: 12 }}
-                  />
-                  <Text style={styles.btnSecondaryText}>Google</Text>
-                  <View style={{ width: 15 }} />
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  navigation.navigate('Register');
-                }}
-              >
-                <Text style={styles.formFooter}>
-                  Chưa có tài khoản?{' '}
-                  <Text style={{ color: '#5548E2' }}>Đăng kí</Text>
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
+        <View style={styles.header}>
+          <Text style={styles.title}>Đăng nhập</Text>
+        </View>
       </LinearGradient>
+      <View style={styles.container}>
+
+        <View style={styles.form}>
+          <AuthContent isLogin onAuthenticate={signInHandler} />
+        </View>
+      </View>
+    </ScrollView>
+
     // </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    flexGrow: 0.8,
+    flexGrow: 1,
     justifyContent: 'center',
   },
   container: {
-    padding: 24,
+    paddingHorizontal: 5,
+    paddingVertical: 100,
+    backgroundColor: 'white'
   },
   gradient: {
     flex: 1,
   },
   header: {
-    marginTop: 0,
-    marginBottom: 30,
+    paddingTop: 110
   },
   title: {
     fontSize: 32,
@@ -143,7 +92,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    marginTop: 20,
+    marginTop: -120,
   },
   formAction: {
     marginVertical: 24,

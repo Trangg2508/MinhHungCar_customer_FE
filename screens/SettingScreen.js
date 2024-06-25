@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   StyleSheet,
   SafeAreaView,
@@ -8,19 +8,25 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import FeatherIcon from 'react-native-vector-icons/Feather';
+import { AuthConText } from '../store/auth-context';
 
 export default function SettingScreen({ navigation }) {
-  const [form, setForm] = useState({
-    emailNotifications: true,
-    pushNotifications: false,
-  });
+  const authCtx = useContext(AuthConText);
+  const handleLogout = async () => {
+    try {
+      authCtx.logout();
+    } catch (error) {
+      console.log('Error clearing AsyncStorage:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.profileSection}>
-          <TouchableOpacity onPress={() => { /* handle onPress */ }}>
+        {/* <View style={styles.profileSection}>
+          <TouchableOpacity onPress={() => { 
+
+           }}>
             <Image
               source={{
                 uri: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=facearea&facepad=2.5&w=256&h=256&q=80',
@@ -32,7 +38,7 @@ export default function SettingScreen({ navigation }) {
             <Text style={styles.profileName}>Nguyễn Văn A</Text>
             <Text style={styles.profileEmail}>abc123@gmail.com</Text>
           </View>
-        </View>
+        </View> */}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tài khoản</Text>
@@ -71,7 +77,7 @@ export default function SettingScreen({ navigation }) {
 
         <View style={styles.section}>
           <View style={[styles.sectionBody, styles.logoutSection]}>
-            <TouchableOpacity onPress={() => { /* handle onPress */ }} style={styles.row}>
+            <TouchableOpacity onPress={handleLogout} style={styles.row}>
               <Text style={styles.logoutLabel}>Đăng xuất</Text>
             </TouchableOpacity>
           </View>
@@ -89,6 +95,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+    paddingTop: 20
   },
   profileSection: {
     alignItems: 'center',

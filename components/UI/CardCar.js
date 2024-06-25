@@ -68,7 +68,7 @@ export default function CardCar() {
               </Text>
             </View>
             <View style={styles.cardFooter}>
-              <Image style={{ width: 15, height: 15 }} source={require('../assets/star.png')} />
+              <Image style={{ width: 15, height: 15 }} source={require('../../assets/star.png')} />
               <Text style={styles.cardStars}>{item.stars}</Text>
               <Text style={styles.cardReviews}>({item.reviews} reviews)</Text>
             </View>

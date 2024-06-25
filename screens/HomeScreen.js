@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { Card } from '@rneui/themed';
-import Category from '../components/Category';
-import CardCar from '../components/CardCar';
+import CardCar from '../components/UI/CardCar';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 
@@ -110,7 +109,7 @@ export default function HomeScreen({ navigation }) {
                     </Card>
                 </View>
                 <View style={styles.category}>
-                    <Category />
+                    <Text>hihi</Text>
                 </View>
                 <Text style={styles.titleList}>Xe dành cho bạn</Text>
                 <View style={styles.listCar}>

@@ -1,6 +1,6 @@
 import { View, Text, Image, ScrollView, SafeAreaView, StyleSheet, TouchableOpacity, Dimensions } from 'react-native'
 import React from 'react'
-import FontAwesome from 'react-native-vector-icons/FontAwesome5';
+// import FontAwesome from 'react-native-vector-icons/FontAwesome5';
 
 const categories = [
   {
@@ -53,8 +53,8 @@ const items = [
 ];
 
 
-export default function FavoriteScreen({navigation}) {
-  
+export default function FavoriteScreen({ navigation }) {
+
   return (
     <View style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', paddingVertical: 24 }}>
@@ -95,7 +95,7 @@ export default function FavoriteScreen({navigation}) {
                         </Text>
                       </View>
                       <View style={styles.cardFooter}>
-                        <Image style={{width: 15, height: 15}} source={require('../assets/star.png')} />
+                        <Image style={{ width: 15, height: 15 }} source={require('../assets/star.png')} />
                         <Text style={styles.cardStars}>{stars}</Text>
                         <Text style={styles.cardReviews}>({reviews} reviews)</Text>
                       </View>

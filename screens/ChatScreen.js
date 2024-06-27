@@ -136,7 +136,7 @@ const ChatScreen = () => {
         data={messages}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
-        // inverted 
+      // inverted 
       />
       <View style={styles.inputContainer}>
         <TextInput
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#6897FF',
     padding: 10,
-    marginLeft: 0, 
+    marginLeft: 0,
   },
   sentMsgTxt: {
     fontSize: 15,

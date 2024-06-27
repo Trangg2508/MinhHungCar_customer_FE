@@ -23,6 +23,8 @@ import PaymentInformationScreen from './screens/PaymentInformationScreen';
 import NotificationScreen from './screens/NotificationScreen';
 import AuthConTextProvider, { AuthConText } from './store/auth-context';
 import ContractScreen from './screens/ContractScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import PaymentMethodScreen from './screens/PaymentMethodScreen';
 
 const Stack = createNativeStackNavigator();
 const Bottoms = createBottomTabNavigator();
@@ -160,7 +162,7 @@ const AuthenticatedStack = () => {
         name='Detail'
         component={DetailScreen}
         options={{
-          title: 'Chi tiết sản phẩm',
+          title: 'Chi tiết xe',
           headerBackTitleVisible: false,
         }}
       />
@@ -210,6 +212,14 @@ const AuthenticatedStack = () => {
         options={{
           headerBackTitleVisible: false,
           title: 'Hợp đồng',
+        }}
+      />
+      <Stack.Screen
+        name='PayMethod'
+        component={PaymentMethodScreen}
+        options={{
+          headerBackTitleVisible: false,
+          title: 'Thanh toán',
         }}
       />
     </Stack.Navigator>

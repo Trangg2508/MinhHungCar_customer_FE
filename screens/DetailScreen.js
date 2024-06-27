@@ -1,5 +1,5 @@
-import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,36 +10,16 @@ import {
   Text,
   Image,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { Divider } from 'react-native-paper';
 import Swiper from 'react-native-swiper';
-// import FeatherIcon from 'react-native-vector-icons/Feather';
-// import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { AuthConText } from '../store/auth-context';
+import axios from 'axios';
+import LoadingOverlay from '../components/UI/LoadingOverlay'
 
 
-const IMAGES = [
-  'https://images.unsplash.com/photo-1617704548623-340376564e68?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8dGVzbGElMjBtb2RlbCUyMHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60',
-  'https://images.unsplash.com/photo-1639358336404-b847ac2a3272?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2340&q=80',
-  'https://images.unsplash.com/photo-1652509525608-6b44097ea5a7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NjN8fHRlc2xhJTIwbW9kZWwlMjBzfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=800&q=60',
-];
 
-const characters = [
-  {
-    img: require('../assets/transmission.png'),
-    label: 'Truyền động',
-    content: 'Số tự động'
-  },
-  {
-    img: require('../assets/seat.png'),
-    label: 'Số ghế',
-    content: '4 chỗ'
-  },
-  {
-    img: require('../assets/gasoline.png'),
-    label: 'Nhiên liệu',
-    content: 'Điện'
-  },
-];
 
 const comments = [
   {
@@ -58,300 +38,243 @@ const comments = [
 
 export default function DetailScreen() {
   const navigation = useNavigation();
+  const authCtx = useContext(AuthConText);
+  const token = authCtx.access_token;
+  const route = useRoute();
+  const { carId, startDate, endDate } = route.params;
+
+
+  console.log("carId: ", carId);
+
+  const [carDetail, setCarDetail] = useState({})
+  const [isLoading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getCarDetail();
+  }, [carId])
+
+  const getCarDetail = async () => {
+    try {
+      const response = await axios.get(`https://minhhungcar.xyz/car/${carId}`)
+      setCarDetail(response.data);
+      console.log('Fetch detail successfully: ', response.data)
+      setLoading(false)
+    } catch (error) {
+      console.log('Fetch detail fail: ', error)
+    }
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <StatusBar barStyle="dark-content" />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <LoadingOverlay message='' />
+        </View>
+      ) : (
+        <>
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+            <View style={styles.container}>
+              <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+                <View style={styles.photos}>
+                  {Array.isArray(carDetail.images) && carDetail.images.length > 0 ? (
+                    <Swiper
+                      renderPagination={(index, total) => (
+                        <View style={styles.photosPagination}>
+                          <Text style={styles.photosPaginationText}>
+                            {index + 1} of {total}
+                          </Text>
+                        </View>
+                      )}
+                    >
+                      {carDetail.images.map((src, index) => (
+                        <Image
+                          key={index}
+                          source={{ uri: src }}
+                          style={styles.photosImg}
+                          resizeMode="cover"
+                        />
+                      ))}
+                    </Swiper>
+                  ) : (
+                    <Text style={styles.errorText}>Không có hình ảnh xe</Text>
+                  )}
+                </View>
+                {/*  */}
 
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <View style={styles.headerAction}>
-              <TouchableOpacity
-                onPress={() => {
-                  // handle onPress
-                }}>
-                {/* <FeatherIcon
-                  color="#000"
-                  name="arrow-left"
-                  size={24} /> */}
-              </TouchableOpacity>
-            </View>
+                <View style={styles.info}>
+                  <Text style={styles.infoTitle}>{carDetail.car_model.brand + ' ' + carDetail.car_model.model + ' ' + carDetail.car_model.year}</Text>
 
-            <Text style={styles.headerTitle}>Tesla Model S</Text>
-
-            <View style={[styles.headerAction, { alignItems: 'flex-end' }]}>
-              <TouchableOpacity
-                onPress={() => {
-                  // handle onPress
-                }}>
-                {/* <FeatherIcon
-                  color="#000"
-                  name="more-vertical"
-                  size={24} /> */}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-            <View style={styles.photos}>
-              {/* <View style={styles.photosTop}>
-                <TouchableOpacity
-                  onPress={() => {
-                    // handle onPress
-                  }}
-                  style={styles.photosTopItem}>
-                  <FeatherIcon color="#000" name="star" size={18} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    // handle onPress
-                  }}
-                  style={styles.photosTopItem}>
-                  <FeatherIcon
-                    color="#000"
-                    name="share"
-                    size={16} />
-                </TouchableOpacity>
-              </View> */}
-
-              <Swiper
-                renderPagination={(index, total) => (
-                  <View style={styles.photosPagination}>
-                    <Text style={styles.photosPaginationText}>
-                      {index + 1} of {total}
-                    </Text>
+                  <View style={styles.infoRating}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+                      <Image source={require('../assets/star.png')} style={styles.icon} />
+                      <Text style={styles.infoRatingLabel}>{carDetail.rating}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+                      <Image source={require('../assets/completeTrip.png')} style={styles.icon} />
+                      <Text style={styles.infoRatingLabel}>{carDetail.total_trip} chuyến</Text>
+                    </View>
                   </View>
-                )}>
-                {IMAGES.map((src, index) => (
-                  <Image
-                    alt=""
-                    key={index}
-                    source={{ uri: src }}
-                    style={styles.photosImg} />
-                ))}
-              </Swiper>
-            </View>
 
-            <TouchableOpacity
-              onPress={() => {
-                // handle onPress
-              }}
-              style={styles.picker}>
-              {/* <FeatherIcon color="#000" name="calendar" size={18} /> */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                <View style={styles.pickerDates}>
-                  <Text style={{ marginBottom: 2, color: "grey", fontSize: 15 }}>
-                    Thời gian nhận xe
-                  </Text>
-                  <Text style={styles.pickerDatesText}>
-                    Sun, Feb 26 at 10:00 AM
+
+                  <Text style={styles.infoDescription}>
+                    {carDetail.description}
                   </Text>
                 </View>
-                <View style={styles.pickerAction}>
-                  <Text style={styles.pickerActionText}>Change</Text>
-                  <FeatherIcon
-                    color="#4C6CFD"
-                    name="chevron-right"
-                    size={18} />
-                </View>
-              </View>
 
-            </TouchableOpacity>
+                <Divider style={{ marginTop: 20 }} />
+                <View style={styles.character}>
+                  <Text style={styles.characterTitle}>Đặc điểm</Text>
+                  <View
+                    style={styles.characterContent}
+                  >
 
-            <TouchableOpacity
-              onPress={() => {
-                // handle onPress
-              }}
-              style={styles.picker}>
-              {/* <FeatherIcon color="#000" name="calendar" size={18} /> */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                <View style={styles.pickerDates}>
-                  <Text style={{ marginBottom: 2, color: "grey", fontSize: 15 }}>
-                    Thời gian trả xe
-                  </Text>
-                  <Text style={styles.pickerDatesText}>
-                    Sun, Feb 26 at 10:00 AM
-                  </Text>
-                </View>
-                <View style={styles.pickerAction}>
-                  <Text style={styles.pickerActionText}>Change</Text>
-                  {/* <FeatherIcon
-                    color="#4C6CFD"
-                    name="chevron-right"
-                    size={18} /> */}
-                </View>
-              </View>
-
-            </TouchableOpacity>
-
-            <View style={styles.info}>
-              <Text style={styles.infoTitle}>Tesla Model S 2022</Text>
-
-              <View style={styles.infoRating}>
-                <Text style={styles.infoRatingLabel}>5.0</Text>
-                {/* 
-                <FeatherIcon
-                  color="#4c6cfd"
-                  name="star"
-                  size={15} /> */}
-
-                <Text style={styles.infoRatingText}>(7 ratings)</Text>
-              </View>
-
-              <Text style={styles.infoDescription}>
-                Tesla 2022 mới có viền lưới tản nhiệt đổi từ mạ crôm sang đen. La-zăng 16 inch trên hai bản Premium và Luxury có thiết kế mới. Kiểu dáng tổng thể vẫn giữ nguyên như bản tiền nhiệm.
-              </Text>
-            </View>
-
-            <Divider style={{ marginTop: 20 }} />
-            <View style={styles.character}>
-              <Text style={styles.characterTitle}>Đặc điểm</Text>
-              <View
-                style={styles.characterContent}
-              >
-                {characters.map(({ img, label, content }, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => {
-                      // handle onPress
-                    }}>
                     <View style={styles.card}>
-                      <Image source={img} style={styles.cardImg} />
-                      <Text style={styles.cardLabel}>{label}</Text>
-                      <Text style={styles.cardContent}>{content}</Text>
+                      <Image source={require('../assets/transmission.png')} style={styles.cardImg} />
+                      <Text style={styles.cardLabel}>Truyền động</Text>
+                      <Text style={styles.cardContent}>
+                        {carDetail.motion === 'automatic_transmission' ? 'Số tự động' : 'Số sàn'}
+                      </Text>
                     </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
 
-            <Divider style={{ marginBottom: 5 }} />
-            <View style={styles.require}>
-              <Text style={styles.requireTitle}>Giấy tờ thuê xe</Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginLeft: 8 }}>
-                <Image style={{ width: 30, height: 30 }} source={require('../assets/IDCard.png')} />
-                <Text style={styles.requireContent}> Xuất trình đầy đủ GPLX, CCCD (chụp hình đối chiếu) hoặc Hộ chiếu (passport) bản gốc giữ lại</Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginLeft: 8 }}>
-                <Image style={{ width: 35, height: 35 }} source={require('../assets/money.png')} />
-                <Text style={styles.requireContent}>Đặt cọc tài sản thế chấp tiền mặt(15 triệu hoặc theo thỏa thuận) hoặc xe máy có giá trị tương đương 15 triệu trở lên (xe máy và cavet gốc) trước khi nhận xe.</Text>
-              </View>
-            </View>
+                    <View style={styles.card}>
+                      <Image source={require('../assets/seat.png')} style={styles.cardImg} />
+                      <Text style={styles.cardLabel}>Số ghế</Text>
+                      <Text style={styles.cardContent}>{carDetail.car_model?.number_of_seats} chỗ </Text>
+                    </View>
 
-            <Divider style={{ marginTop: 10, marginBottom: 5 }} />
-            <View style={styles.regulation}>
-              <Text style={styles.regulationTitle}>Điều khoản</Text>
-              <View style={styles.containerRegulation}>
-                <View style={styles.bullet}>
-                  <Text>{'\u2022'}</Text>
-                </View>
-                <View style={styles.bulletTextContainer}>
-                  <Text style={styles.bulletText}>
-                    Sử dụng xe đúng mục đích.
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.containerRegulation}>
-                <View style={styles.bullet}>
-                  <Text>{'\u2022'}</Text>
-                </View>
-                <View style={styles.bulletTextContainer}>
-                  <Text style={styles.bulletText}>
-                    Không hút thuốc, nhả kẹo cao su, xả rác trong xe.
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.containerRegulation}>
-                <View style={styles.bullet}>
-                  <Text>{'\u2022'}</Text>
-                </View>
-                <View style={styles.bulletTextContainer}>
-                  <Text style={styles.bulletText}>
-                    Không chở hàng quốc cấm, hàng dễ cháy nổ.
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.containerRegulation}>
-                <View style={styles.bullet}>
-                  <Text>{'\u2022'}</Text>
-                </View>
-                <View style={styles.bulletTextContainer}>
-                  <Text style={styles.bulletText}>
-                    Không chở hoa quả, thực phẩm nặng mùi trong xe.
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.containerRegulation}>
-                <View style={styles.bullet}>
-                  <Text>{'\u2022'}</Text>
-                </View>
-                <View style={styles.bulletTextContainer}>
-                  <Text style={styles.bulletText}>
-                    Không sử dụng xe thuê vào mục đích phi pháp, trái  pháp luật...
-                  </Text>
-                </View>
-              </View>
-            </View>
+                    <View style={styles.card}>
+                      <Image source={require('../assets/gasoline.png')} style={styles.cardImg} />
+                      <Text style={styles.cardLabel}>Nhiên liệu</Text>
+                      <Text style={styles.cardContent}>
+                        {carDetail.fuel === 'electricity' ? 'Điện' : (carDetail.fuel === 'oil' ? 'Dầu' : 'Xăng')}
+                      </Text>
+                    </View>
 
-            <Divider style={{ marginTop: 20, marginBottom: 5 }} />
-            <View style={styles.comment}>
-              <Text style={styles.commentTitle}>Đánh giá</Text>
-              <View>
-                {comments.map((item) => (
-                  <View key={item.id.toString()} style={styles.commentContainer}>
-                    <Image source={{ uri: item.authorAvatar }} style={styles.commentAvatar} />
-                    <View style={styles.commentTextContainer}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text style={styles.commentAuthor}>{item.author}</Text>
-                        <Text style={styles.commentDate}>19/05/2024</Text>
-                      </View>
+                  </View>
+                </View>
 
-                      <View style={styles.commentRating}>
-                        <Image source={require('../assets/star.png')} style={{ width: 20, height: 20 }} />
-                        <Text>5</Text>
-                      </View>
-                      <Text style={styles.commentText}>{item.text}</Text>
+                <Divider style={{ marginBottom: 5 }} />
+                <View style={styles.require}>
+                  <Text style={styles.requireTitle}>Giấy tờ thuê xe</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginLeft: 8 }}>
+                    <Image style={{ width: 30, height: 30 }} source={require('../assets/IDCard.png')} />
+                    <Text style={styles.requireContent}> Xuất trình đầy đủ GPLX, CCCD (chụp hình đối chiếu) hoặc Hộ chiếu (passport) bản gốc giữ lại</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginLeft: 8 }}>
+                    <Image style={{ width: 35, height: 35 }} source={require('../assets/money.png')} />
+                    <Text style={styles.requireContent}>Tài sản thế chấp tiền mặt(15 triệu hoặc theo thỏa thuận) hoặc xe máy có giá trị tương đương 15 triệu trở lên (xe máy và cavet gốc) trước khi nhận xe.</Text>
+                  </View>
+                </View>
+
+                <Divider style={{ marginTop: 10, marginBottom: 5 }} />
+                <View style={styles.regulation}>
+                  <Text style={styles.regulationTitle}>Điều khoản</Text>
+                  <View style={styles.containerRegulation}>
+                    <View style={styles.bullet}>
+                      <Text>{'\u2022'}</Text>
+                    </View>
+                    <View style={styles.bulletTextContainer}>
+                      <Text style={styles.bulletText}>
+                        Sử dụng xe đúng mục đích.
+                      </Text>
                     </View>
                   </View>
-                ))}
-                <TouchableOpacity
-                  style={styles.seeMoreContainer}
-                  onPress={() => {
+                  <View style={styles.containerRegulation}>
+                    <View style={styles.bullet}>
+                      <Text>{'\u2022'}</Text>
+                    </View>
+                    <View style={styles.bulletTextContainer}>
+                      <Text style={styles.bulletText}>
+                        Không hút thuốc, nhả kẹo cao su, xả rác trong xe.
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.containerRegulation}>
+                    <View style={styles.bullet}>
+                      <Text>{'\u2022'}</Text>
+                    </View>
+                    <View style={styles.bulletTextContainer}>
+                      <Text style={styles.bulletText}>
+                        Không chở hàng quốc cấm, hàng dễ cháy nổ.
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.containerRegulation}>
+                    <View style={styles.bullet}>
+                      <Text>{'\u2022'}</Text>
+                    </View>
+                    <View style={styles.bulletTextContainer}>
+                      <Text style={styles.bulletText}>
+                        Không chở hoa quả, thực phẩm nặng mùi trong xe.
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.containerRegulation}>
+                    <View style={styles.bullet}>
+                      <Text>{'\u2022'}</Text>
+                    </View>
+                    <View style={styles.bulletTextContainer}>
+                      <Text style={styles.bulletText}>
+                        Không sử dụng xe thuê vào mục đích phi pháp, trái  pháp luật...
+                      </Text>
+                    </View>
+                  </View>
+                </View>
 
-                  }}>
+                <Divider style={{ marginTop: 20, marginBottom: 5 }} />
+                <View style={styles.comment}>
+                  <Text style={styles.commentTitle}>Đánh giá</Text>
+                  <View>
+                    {comments.map((item) => (
+                      <View key={item.id.toString()} style={styles.commentContainer}>
+                        <Image source={{ uri: item.authorAvatar }} style={styles.commentAvatar} />
+                        <View style={styles.commentTextContainer}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                            <Text style={styles.commentAuthor}>{item.author}</Text>
+                            <Text style={styles.commentDate}>19/05/2024</Text>
+                          </View>
 
-                  <Text style={styles.seeMore}>Xem thêm</Text>
+                          <View style={styles.commentRating}>
+                            <Image source={require('../assets/star.png')} style={{ width: 20, height: 20 }} />
+                            <Text>5</Text>
+                          </View>
+                          <Text style={styles.commentText}>{item.text}</Text>
+                        </View>
+                      </View>
+                    ))}
+                    <TouchableOpacity
+                      style={styles.seeMoreContainer}
+                      onPress={() => {
 
-                </TouchableOpacity>
+                      }}>
+                      <Text style={styles.seeMore}>Xem thêm</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+              </ScrollView>
+            </View>
+          </SafeAreaView>
+
+          <View style={styles.overlay}>
+            <View style={styles.overlayContent}>
+              <View style={styles.overlayContentTop}>
+                <Text style={styles.overlayContentPrice}>{carDetail.price.toLocaleString('en-US')} VNĐ/ngày</Text>
               </View>
-
-
-
             </View>
 
-          </ScrollView>
-        </View>
-      </SafeAreaView>
-
-      <View style={styles.overlay}>
-        <View style={styles.overlayContent}>
-          <View style={styles.overlayContentTop}>
-
-            <Text style={styles.overlayContentPrice}>683.000 đ/ngày</Text>
+            <TouchableOpacity
+              onPress={() => {
+                navigation.navigate('Checkout', { carId: carDetail.id, startDate: startDate, endDate: endDate })
+              }}>
+              <View style={styles.btn}>
+                <Text style={styles.btnText}>Chọn thuê</Text>
+              </View>
+            </TouchableOpacity>
           </View>
-
-        </View>
-
-        <TouchableOpacity
-          onPress={() => {
-            navigation.navigate('Checkout')
-          }}>
-          <View style={styles.btn}>
-            <Text style={styles.btnText}>Chọn thuê</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+        </>
+      )}
     </View>
   );
 }
@@ -364,23 +287,12 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexBasis: 0,
   },
-  /** Header */
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerAction: {
-    width: 40,
-    height: 40,
-    alignItems: 'flex-start',
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 19,
-    fontWeight: '600',
-    color: '#000',
-  },
+
   /** Photos */
   photos: {
     marginTop: 12,
@@ -413,39 +325,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 240,
   },
-  /** Picker */
-  picker: {
-    marginTop: 12,
-    paddingTop: 0,
-    paddingBottom: 14,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    // flexDirection: 'row',
-    // alignItems: 'center',
-    // justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#f5f5f5',
+  errorText: {
+    textAlign: 'center',
+    justifyContent: 'center'
   },
-  pickerDates: {
-    marginLeft: 12,
-  },
-  pickerDatesText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  pickerAction: {
-    marginLeft: 'auto',
-    flexDirection: 'row',
-    // alignItems: 'center',
-    // justifyContent: 'center',
-  },
-  pickerActionText: {
-    fontSize: 16,
-    lineHeight: 21,
-    fontWeight: '600',
-    color: '#4c6cfd',
-  },
+
   /** Info */
   info: {
     marginTop: 12,
@@ -461,15 +345,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.38,
     color: '#000000',
     marginBottom: 6,
+    fontWeight: 'bold'
   },
   infoRating: {
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
+  icon: {
+    width: 15,
+    height: 15,
+    marginRight: 6
+  },
   infoRatingLabel: {
     fontSize: 13,
-    fontWeight: 'bold',
+    fontWeight: '500',
     color: '#000',
     marginRight: 2,
   },
@@ -670,8 +560,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 12,
-    paddingHorizontal: 16,
-    paddingBottom: 48,
+    paddingHorizontal: 24,
+    paddingBottom: 45,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -684,6 +574,7 @@ const styles = StyleSheet.create({
   overlayContent: {
     flexDirection: 'column',
     alignItems: 'flex-start',
+    // paddingHorizontal: 10
   },
   overlayContentTop: {
     flexDirection: 'row',

@@ -1,132 +1,311 @@
-import { View, Text, SafeAreaView, ScrollView, StyleSheet, Image } from 'react-native';
-import React, { useState } from 'react';
+import { View, Text, SafeAreaView, ScrollView, StyleSheet, Image, Alert } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Divider, Switch } from 'react-native-paper';
 import { TouchableOpacity } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { AuthConText } from '../store/auth-context';
+import axios from 'axios';
+import LoadingOverlay from '../components/UI/LoadingOverlay';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { apiCar } from '../api/apiConfig';
 
 export default function CheckoutScreen() {
-    const [isEnabled, setIsEnabled] = useState(false);
+    const navigation = useNavigation();
+    const authCtx = useContext(AuthConText);
+    const token = authCtx.access_token;
+    const route = useRoute();
+    const { carId, startDate, endDate } = route.params;
 
-    const toggleSwitch = () => {
-        setIsEnabled(previousState => !previousState);
+    console.log("carId: ", carId);
+
+    const [carDetail, setCarDetail] = useState({})
+    const [isLoading, setLoading] = useState(true);
+    const [parsedStartDate, setParsedStartDate] = useState(null);
+    const [parsedEndDate, setParsedEndDate] = useState(null);
+
+    const [contractID, setContractID] = useState('')
+    const [selectedCollateral, setSelectedCollateral] = useState('cash');
+
+    const handleOptionSelect = (option) => {
+        setSelectedCollateral(option);
     };
 
-    const [form, setForm] = useState({
-        emailNotifications: true,
-        pushNotifications: false,
-      });
+
+    // Effect to parse ISO strings on initial load
+    useEffect(() => {
+        if (startDate && endDate) {
+            setParsedStartDate(new Date(startDate));
+            setParsedEndDate(new Date(endDate));
+        }
+    }, [startDate, endDate]);
+
+    console.log("parsedStartDate: ", parsedStartDate)
+
+    useEffect(() => {
+        getCarDetail();
+    }, [carId])
+
+    const getCarDetail = async () => {
+        try {
+            const response = await axios.get(`https://minhhungcar.xyz/car/${carId}`)
+            setCarDetail(response.data);
+            console.log('Fetch detail successfully: ', response.data)
+            setLoading(false)
+        } catch (error) {
+            console.log('Fetch detail fail: ', error)
+        }
+    }
+
+    const rentCar = async () => {
+        try {
+            const response = await axios.post(apiCar.rentCar,
+                {
+                    "car_id": carId,
+                    "start_date": parsedStartDate,
+                    "end_date": parsedEndDate,
+                    "collateral_type": selectedCollateral
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+            setContractID(response.contract.id)
+            console.log("contractID: ", response.contract.id)
+            // await getContractDetail()
+            setLoading(false)
+        } catch (error) {
+            console.log('Rent car fail: ', error)
+        }
+    }
+
+
+
+    const agreeContract = async () => {
+        try {
+            const response = await axios.put(apiCar.agreeContract,
+                {
+                    "customer_contract_id": contractID
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+        } catch (error) {
+            console.log('Agree contract fail: ', error)
+        }
+    }
+
+    // Handle date change for start date
+    const handleStartDateChange = (event, selectedDate) => {
+        const currentDate = selectedDate || parsedStartDate;
+        const minDate = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours from now
+        if (currentDate < minDate) {
+            Alert.alert('', 'Please select a date and time at least 2 hours in the future.');
+        } else {
+            setParsedStartDate(currentDate);
+            // Automatically set end date to 1 day after start date
+            const nextDay = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+            setParsedEndDate(nextDay);
+        }
+    };
+
+    // Handle date change for end date
+    const handleEndDateChange = (event, selectedDate) => {
+        const currentDate = selectedDate || parsedEndDate;
+        const minDate = parsedStartDate || new Date(); // Minimum date is the start date or current date
+        const maxDate = new Date(minDate.getTime() + 24 * 60 * 60 * 1000); // 1 day after the start date
+        if (currentDate <= minDate) {
+            Alert.alert('', 'End date should be after the start date.');
+
+        } else {
+            setParsedEndDate(currentDate);
+        }
+    };
+
     return (
         <View style={{ flex: 1 }}>
             <StatusBar barStyle="dark-content" />
-
-            <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-                <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-                    <View style={styles.container}>
-                        <View style={styles.card}>
-                            <Image
-                                resizeMode="cover"
-                                source={{ uri: 'https://images.unsplash.com/photo-1617704548623-340376564e68?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8dGVzbGElMjBtb2RlbCUyMHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60' }}
-                                style={styles.cardImg}
-                            />
-                            <View style={styles.cardBody}>
-                                <Text style={styles.cardTag}>Biển số xe: K38BIG</Text>
-                                <Text style={styles.cardTitle}>Tesla Model S</Text>
-                                <View style={styles.cardRow}>
-                                    <View style={styles.cardRowItem}>
-                                        <Image
-                                            source={require('../assets/star.png')}
-                                            style={styles.cardRowItemImg}
-                                        />
-                                        <Text style={styles.cardRowItemText}>5</Text>
-                                    </View>
-                                </View>
-                            </View>
-                        </View>
-
-                        <Divider />
-
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Thông tin thuê xe</Text>
-                            <View style={styles.row}>
-                                <View style={styles.rowItem}>
-                                    <Image style={styles.icon} source={require('../assets/calendar_grey.png')} />
-                                    <View>
-                                        <Text style={styles.label}>Nhận xe</Text>
-                                        <Text style={styles.value}>21h00, 09/05/2024</Text>
-                                    </View>
-                                </View>
-                                <View style={styles.rowItem}>
-                                    <Image style={styles.icon} source={require('../assets/calendar_grey.png')} />
-                                    <View>
-                                        <Text style={styles.label}>Trả xe</Text>
-                                        <Text style={styles.value}>20h00, 10/05/2024</Text>
-                                    </View>
-                                </View>
-                            </View>
-                            <View>
-                                <View style={{ marginTop: 20 }}>
-                                    <View style={{ flexDirection: 'row' }}>
-
-                                        <Image style={{ width: 18, height: 18, marginRight: 5 }} source={require('../assets/location_grey.png')} />
-                                        <View >
-                                            <Text style={styles.label}>Nhận xe tại địa chỉ</Text>
-
-                                            <Text style={styles.value}>FPT University</Text>
+            {isLoading ? (
+                <View style={styles.loadingContainer}>
+                    <LoadingOverlay message='' />
+                </View>
+            ) : (
+                <>
+                    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+                        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+                            <View style={styles.container}>
+                                <View style={styles.card}>
+                                    <Image
+                                        resizeMode="cover"
+                                        source={{ uri: carDetail.images[0] }}
+                                        style={styles.cardImg}
+                                    />
+                                    <View style={styles.cardBody}>
+                                        <Text style={styles.cardTag}>Biển số xe: {carDetail.license_plate}</Text>
+                                        <Text style={styles.cardTitle}>{carDetail.car_model.brand + ' ' + carDetail.car_model.model + ' ' + carDetail.car_model.year}</Text>
+                                        <View style={styles.cardRow}>
+                                            <View style={styles.cardRowItem}>
+                                                <Image
+                                                    source={require('../assets/star.png')}
+                                                    style={styles.cardRowItemImg}
+                                                />
+                                                <Text style={styles.cardRowItemText}>5</Text>
+                                            </View>
                                         </View>
                                     </View>
-
                                 </View>
+
+                                <Divider />
+
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>Thông tin thuê xe</Text>
+                                    <View style={styles.row}>
+                                        <View style={styles.rowItem}>
+                                            <Image style={styles.icon} source={require('../assets/calendar_grey.png')} />
+                                            <View>
+                                                <Text style={styles.label}>Nhận xe</Text>
+                                                <View
+                                                    style={{
+                                                        marginTop: 15,
+                                                        flexDirection: 'row',
+                                                        marginLeft: -70
+                                                    }}
+                                                >
+                                                    <DateTimePicker
+                                                        value={parsedStartDate}
+                                                        mode="datetime"
+                                                        display="default"
+                                                        onChange={handleStartDateChange}
+                                                        minimumDate={new Date(Date.now() + 2 * 60 * 60 * 1000)}
+                                                        locale="vi"
+                                                    />
+                                                </View>
+                                            </View>
+                                        </View>
+                                        <View style={styles.rowItem}>
+                                            <Image style={styles.icon} source={require('../assets/calendar_grey.png')} />
+                                            <View>
+                                                <Text style={styles.label}>Trả xe</Text>
+                                                <View
+                                                    style={{
+                                                        marginLeft: -80,
+                                                        marginTop: 15,
+                                                        flexDirection: 'row'
+                                                    }}
+                                                >
+                                                    <DateTimePicker
+                                                        value={parsedEndDate}
+                                                        mode="datetime"
+                                                        display="default"
+                                                        onChange={handleEndDateChange}
+                                                        minimumDate={new Date(Date.now() + 2 * 60 * 60 * 1000)}
+                                                        locale="vi"
+                                                    />
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </View>
+                                    <View>
+                                        <View style={{ marginTop: 20 }}>
+                                            <View style={{ flexDirection: 'row' }}>
+
+                                                <Image style={{ width: 18, height: 18, marginRight: 5 }} source={require('../assets/location_grey.png')} />
+                                                <View >
+                                                    <Text style={styles.label}>Nhận xe tại địa chỉ</Text>
+
+                                                    <Text style={styles.value}>FPT University</Text>
+                                                </View>
+                                            </View>
+
+                                        </View>
+                                    </View>
+                                </View>
+
+                                <Divider />
+
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>Loại thế chấp</Text>
+                                    {/* <View style={styles.row}> */}
+
+                                    <View style={styles.radioContainer}>
+                                        <TouchableOpacity
+                                            style={styles.radioButtonContainer}
+                                            onPress={() => handleOptionSelect('cash')}
+                                        >
+                                            <View style={[styles.radioButton, selectedCollateral === 'cash' && styles.radioButtonSelected]}>
+                                                {selectedCollateral === 'cash' && <View style={styles.radioButtonInner} />}
+                                            </View>
+                                            <Text style={styles.radioButtonText}>Tiền mặt</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.radioButtonContainer}
+                                            onPress={() => handleOptionSelect('motorbike')}
+                                        >
+                                            <View style={[styles.radioButton, selectedCollateral === 'motorbike' && styles.radioButtonSelected]}>
+                                                {selectedCollateral === 'motorbike' && <View style={styles.radioButtonInner} />}
+                                            </View>
+                                            <Text style={styles.radioButtonText}>Xe máy và giấy tờ xe</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    {/* </View>  */}
+                                </View>
+
+                                <View style={styles.priceContainer}>
+                                    <Text style={{ fontSize: 20, marginBottom: 20, fontWeight: 'bold', marginHorizontal: 25, marginVertical: 20 }}>Bảng tính giá</Text>
+                                    <View style={styles.price}>
+                                        <View style={styles.priceDetail}>
+                                            <Text style={styles.priceTitle}>Đơn giá thuê</Text>
+                                            <Text style={styles.priceText}>668.800 đ/ngày</Text>
+                                        </View>
+                                        <View style={styles.priceDetail}>
+                                            <Text style={styles.priceTitle}>Số ngày thuê</Text>
+                                            <Text style={styles.priceText}>668.800 đ/ngày</Text>
+                                        </View>
+                                        <View style={styles.priceDetail}>
+                                            <Text style={styles.priceTitle}>Bảo hiểm thuê xe</Text>
+                                            <Text style={styles.priceText}>61.801 đ/ngày</Text>
+                                        </View>
+                                        <Divider style={styles.divider} />
+                                        <View style={styles.priceDetail}>
+                                            <Text style={styles.priceTitleColor}>Thành tiền</Text>
+                                            <Text style={styles.priceTextColor}>750.601 đ</Text>
+                                        </View>
+                                        <View style={styles.priceDetail}>
+                                            <Text style={styles.priceTitleColor}>Đặt cọc qua ứng dụng</Text>
+                                            <Text style={styles.priceTextColor}>214.601 đ</Text>
+                                        </View>
+                                        <View style={styles.priceDetail}>
+                                            <Text style={styles.priceTitleColor}>Thanh toán khi nhận xe</Text>
+                                            <Text style={styles.priceTextColor}>436.000 đ</Text>
+                                        </View>
+                                    </View>
+                                </View>
+
+                                <View style={styles.requireContainer}>
+                                    <Text style={styles.sectionTitle}>Giấy tờ thuê xe</Text>
+                                    <View style={styles.require}>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginLeft: 8, marginBottom: 8 }}>
+                                            <Image style={{ width: 30, height: 30 }} source={require('../assets/IDCard.png')} />
+                                            <Text style={styles.requireContent}> Xuất trình đầy đủ GPLX, CCCD (chụp hình đối chiếu) hoặc Hộ chiếu (passport) bản gốc giữ lại</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginLeft: 8 }}>
+                                            <Image style={{ width: 35, height: 35 }} source={require('../assets/money.png')} />
+                                            <Text style={styles.requireContent}>Tài sản thế chấp tiền mặt(15 triệu hoặc theo thỏa thuận) hoặc xe máy có giá trị tương đương 15 triệu trở lên (xe máy và cavet gốc) trước khi nhận xe.</Text>
+                                        </View>
+                                    </View>
+                                </View>
+
                             </View>
-                        </View>
-                        <View style={styles.priceContainer}>
-                            <Text style={{ fontSize: 20, marginBottom: 20, fontWeight: 'bold', marginHorizontal: 25, marginVertical: 20 }}>Bảng tính giá</Text>
-                            <View style={styles.price}>
-                                <View style={styles.priceDetail}>
-                                    <Text style={styles.priceTitle}>Đơn giá thuê</Text>
-                                    <Text style={styles.priceText}>668.800 đ/ngày</Text>
-                                </View>
-                                <View style={styles.priceDetail}>
-                                    <Text style={styles.priceTitle}>Bảo hiểm thuê xe</Text>
-                                    <Text style={styles.priceText}>61.801 đ/ngày</Text>
-                                </View>
-                                <Divider style={styles.divider} />
-                                <View style={styles.priceDetail}>
-                                    <Text style={styles.priceTitleColor}>Thành tiền</Text>
-                                    <Text style={styles.priceTextColor}>750.601 đ</Text>
-                                </View>
-                                <View style={styles.priceDetail}>
-                                    <Text style={styles.priceTitleColor}>Đặt cọc qua ứng dụng</Text>
-                                    <Text style={styles.priceTextColor}>214.601 đ</Text>
-                                </View>
-                                <View style={styles.priceDetail}>
-                                    <Text style={styles.priceTitleColor}>Thanh toán khi nhận xe</Text>
-                                    <Text style={styles.priceTextColor}>436.000 đ</Text>
-                                </View>
-                            </View>
-                        </View>
+                        </ScrollView>
+                    </SafeAreaView>
 
-                        <View style={styles.requireContainer}>
-                            <Text style={styles.sectionTitle}>Giấy tờ thuê xe</Text>
-                            <View style={styles.require}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginLeft: 8, marginBottom: 8 }}>
-                                    <Image style={{ width: 30, height: 30 }} source={require('../assets/IDCard.png')} />
-                                    <Text style={styles.requireContent}> Xuất trình đầy đủ GPLX, CCCD (chụp hình đối chiếu) hoặc Hộ chiếu (passport) bản gốc giữ lại</Text>
-                                </View>
-                                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginLeft: 8 }}>
-                                    <Image style={{ width: 35, height: 35 }} source={require('../assets/money.png')} />
-                                    <Text style={styles.requireContent}>Đặt cọc tài sản thế chấp tiền mặt(15 triệu hoặc theo thỏa thuận) hoặc xe máy có giá trị tương đương 15 triệu trở lên (xe máy và cavet gốc) trước khi nhận xe.</Text>
-                                </View>
-                            </View>
-                        </View>
-
-                    </View>
-                </ScrollView>
-            </SafeAreaView>
-
-            <View style={styles.overlay}>
-                <View style={styles.overlayContent}>
-                    <View style={styles.overlayContentTop}>
-                        {/* <Switch
+                    <View style={styles.overlay}>
+                        <View style={styles.overlayContent}>
+                            <View style={styles.overlayContentTop}>
+                                {/* <Switch
                             trackColor={{ false: '#6E6D6D', true: '#67C96B' }}
                             thumbColor={'#fff'}
                             ios_backgroundColor="#B8B8B8"
@@ -139,24 +318,31 @@ export default function CheckoutScreen() {
                                 Chính sách hủy chuyến của MinhHungCar
                             </Text>
                         </Text> */}
-                    </View>
+                            </View>
 
-                </View>
+                        </View>
 
-                <TouchableOpacity
-                    onPress={() => {
-                       
-                    }}>
-                    <View style={styles.btn}>
-                        <Text style={styles.btnText}>Gửi yêu cầu thuê xe</Text>
+                        <TouchableOpacity
+                            onPress={() => {
+                                navigation.navigate('Contract', { contractID: contractID })
+                            }}>
+                            <View style={styles.btn}>
+                                <Text style={styles.btnText}>Thuê xe</Text>
+                            </View>
+                        </TouchableOpacity>
                     </View>
-                </TouchableOpacity>
-            </View>
+                </>
+            )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     scrollViewContent: {
         paddingBottom: 100,
     },
@@ -173,7 +359,7 @@ const styles = StyleSheet.create({
     },
     cardImg: {
         width: 140,
-        height: 90,
+        height: '100%',
         borderRadius: 12,
     },
     cardBody: {
@@ -185,10 +371,10 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#939393',
         marginBottom: 9,
-        textTransform: 'capitalize',
+        textTransform: 'uppercase'
     },
     cardTitle: {
-        fontSize: 20,
+        fontSize: 18,
         color: '#000',
         marginBottom: 8,
         fontWeight: 'bold'
@@ -224,6 +410,7 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        paddingHorizontal: 5
     },
     rowItem: {
         flexDirection: 'row',
@@ -326,8 +513,8 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     switch: {
-        transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] 
-      },
+        transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }]
+    },
     overlayContentPrice: {
         fontSize: 11,
         lineHeight: 26,
@@ -352,5 +539,39 @@ const styles = StyleSheet.create({
         lineHeight: 26,
         fontWeight: '600',
         color: '#fff',
+    },
+    //Radio button
+    radioContainer: {
+        flex: 1,
+        // justifyContent: 'center',
+        // alignItems: 'center',
+    },
+    radioButtonContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    radioButton: {
+        height: 18,
+        width: 18,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: 'black',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+    },
+    radioButtonSelected: {
+        borderColor: '#773BFF',
+    },
+    radioButtonInner: {
+        height: 10,
+        width: 10,
+        borderRadius: 6,
+        backgroundColor: '#773BFF',
+    },
+    radioButtonText: {
+        fontSize: 14,
+        color: '#000',
     },
 });

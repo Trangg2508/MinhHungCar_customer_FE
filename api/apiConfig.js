@@ -10,6 +10,15 @@ export const apiAccount = {
 };
 
 export const apiCar = {
+    // method: get
+    filterCar: `${endpoint}/customer/cars`,
+
+    //method: post
+    rentCar: `${endpoint}/customer/rent`,
+
+    //method: put
+    agreeContract: `${endpoint}/customer/contract/agree`
+
 
 }
 

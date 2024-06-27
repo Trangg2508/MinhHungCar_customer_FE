@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import FeatherIcon from 'react-native-vector-icons/Feather';
+// import FeatherIcon from 'react-native-vector-icons/Feather';
 
 const items = [
   {
@@ -82,10 +82,10 @@ export default function CardForYou() {
                 <View style={styles.card}>
                   <View style={styles.cardTop}>
                     <View style={styles.cardIcon}>
-                      <FeatherIcon
+                      {/* <FeatherIcon
                         color="#000"
                         name={icon}
-                        size={24} />
+                        size={24} /> */}
                     </View>
 
                     <View style={styles.cardBody}>
@@ -131,10 +131,10 @@ export default function CardForYou() {
                 <View style={styles.card}>
                   <View style={styles.cardTop}>
                     <View style={styles.cardIcon}>
-                      <FeatherIcon
+                      {/* <FeatherIcon
                         color="#000"
                         name={icon}
-                        size={24} />
+                        size={24} /> */}
                     </View>
 
                     <View style={styles.cardBody}>

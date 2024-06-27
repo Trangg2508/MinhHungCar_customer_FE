@@ -1,30 +1,55 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { Card } from '@rneui/themed';
 import CardCar from '../components/UI/CardCar';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation } from '@react-navigation/native';
 
+export default function HomeScreen() {
+    const [startDate, setStartDate] = useState(new Date(Date.now() + 2 * 60 * 60 * 1000)); // Current time + 2 hours
+    const [endDate, setEndDate] = useState(new Date(startDate.getTime() + 24 * 60 * 60 * 1000)); // Start date + 1 day
+    const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+    const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
-export default function HomeScreen({ navigation }) {
-    const [date, setDate] = useState(new Date());
-    const [showDatePicker, setShowDatePicker] = useState(false);
+    const navigation = useNavigation();
 
-    useEffect(() => {
-        setShowDatePicker(true); // Show the DatePicker when the component mounts
-    }, []);
+    const handleStartDateChange = (event, selectedDate) => {
+        const currentDate = selectedDate || startDate;
+        setShowStartDatePicker(Platform.OS === 'ios');
 
-    const onChangeDate = (event, selectedDate) => {
-        const currentDate = selectedDate || date;
-        setShowDatePicker(false);
-        setDate(currentDate);
+        // Check if the selected date is at least 2 hours in the future
+        if (currentDate >= new Date(Date.now() + 2 * 60 * 60 * 1000)) {
+            setStartDate(currentDate);
+            // Automatically set end date to 1 day after start date
+            const nextDay = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+            setEndDate(nextDay);
+            console.log('selectedStartDate: ', formatDateForNavigation(currentDate));
+            console.log('selectedEndDate: ', formatDateForNavigation(nextDay));
+        } else {
+            Alert.alert('', 'Please select a date and time at least 2 hours in the future.');
+        }
     };
 
-    const formatDate = (date) => {
-        const formattedDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-        return formattedDate;
+    const handleEndDateChange = (event, selectedDate) => {
+        const currentDate = selectedDate || endDate;
+        setShowEndDatePicker(Platform.OS === 'ios');
+        if (currentDate >= new Date(Date.now() + 2 * 60 * 60 * 1000)) {
+            setEndDate(currentDate);
+            console.log('selectedEndDate: ', formatDateForNavigation(currentDate));
+        } else {
+            Alert.alert('', 'Please select a date and time at least 2 hours in the future.');
+        }
     };
 
+    const formatDateForNavigation = (date) => {
+        const isoString = date.toISOString();
+        return isoString.slice(0, 19) + 'Z';
+    };
+
+    const handleSearch = () => {
+        navigation.navigate('List', { startDate: formatDateForNavigation(startDate), endDate: formatDateForNavigation(endDate) })
+    }
     return (
         <ScrollView>
             <View style={styles.container}>
@@ -38,18 +63,14 @@ export default function HomeScreen({ navigation }) {
                     <Rect width="100%" height="180" fill="url(#grad)" />
                 </Svg>
                 <View style={styles.header}>
-
-                    <View>
-                        <View style={styles.avatar}>
-                            <Image
-                                alt=""
-                                source={{
-                                    uri: 'https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=facearea&facepad=2.5&w=256&h=256&q=80',
-                                }}
-                                style={styles.avatarImg} />
-
-                        </View>
-
+                    <View style={styles.avatar}>
+                        <Image
+                            alt=""
+                            source={{
+                                uri: 'https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=facearea&facepad=2.5&w=256&h=256&q=80',
+                            }}
+                            style={styles.avatarImg}
+                        />
                     </View>
                     <View>
                         <Text style={styles.headerTitle}>
@@ -58,7 +79,6 @@ export default function HomeScreen({ navigation }) {
                         </Text>
                     </View>
                 </View>
-
                 <View style={styles.content}>
                     <Card containerStyle={styles.card}>
                         <View style={styles.titleBackground}>
@@ -66,54 +86,65 @@ export default function HomeScreen({ navigation }) {
                         </View>
                         <View style={styles.dateFromTo}>
                             <View style={{ flexDirection: 'row' }}>
-                                <Image style={{ width: 20, height: 20 }} source={require('../assets/calendar_grey.png')} />
-                                <Text style={styles.fonts_1} h1>
-                                    Từ ngày
-                                </Text>
+                                <Image style={{ width: 18, height: 18 }} source={require('../assets/calendar_grey.png')} />
+                                <Text style={styles.fonts_1}>Từ ngày</Text>
                             </View>
 
-                            {showDatePicker && (
+                            <View
+                                style={{
+                                    marginLeft: -25,
+                                    marginTop: 5,
+                                    // flexDirection: 'row'
+                                }}
+                            >
                                 <DateTimePicker
-                                    testID="dateTimePicker"
-                                    value={date}
-                                    mode="date"
-                                    is24Hour={true}
+                                    value={startDate}
+                                    mode="datetime"
+                                    locale="vi"
                                     display="default"
-                                    onChange={onChangeDate}
+                                    onChange={handleStartDateChange}
+                                    minimumDate={new Date(Date.now() + 2 * 60 * 60 * 1000)}
                                 />
-                            )}
-                            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                                <Text style={{ color: 'black' }}>{formatDate(date)}</Text>
-                            </TouchableOpacity>
+                            </View>
                         </View>
                         <View style={styles.dateFromTo}>
                             <View style={{ flexDirection: 'row' }}>
-                                <Image style={{ width: 20, height: 20 }} source={require('../assets/calendar_grey.png')} />
-                                <Text style={styles.fonts_1} h1>
-                                    Đến ngày
-                                </Text>
+                                <Image style={{ width: 18, height: 18 }} source={require('../assets/calendar_grey.png')} />
+                                <Text style={styles.fonts_1}>Đến ngày</Text>
                             </View>
-                            <Text style={styles.fonts_2} h2>
-                                h2 Heading
-                            </Text>
 
-
+                            <View style={{
+                                marginLeft: -25,
+                                marginTop: 5,
+                                // flexDirection: 'row'
+                            }}>
+                                <DateTimePicker
+                                    value={endDate}
+                                    mode="datetime"
+                                    locale="vi"
+                                    display="default"
+                                    onChange={handleEndDateChange}
+                                    minimumDate={new Date(Date.now() + 2 * 60 * 60 * 1000)}
+                                />
+                            </View>
                         </View>
-                        <TouchableOpacity onPress={() => {
-                            navigation.navigate('List')
-                        }}>
+                        <TouchableOpacity onPress={handleSearch}>
                             <View style={styles.button}>
                                 <Text style={styles.buttonText}>Tìm kiếm</Text>
                             </View>
                         </TouchableOpacity>
+                        {/* <TouchableOpacity onPress={() => navigation.navigate('PayMethod')}>
+                            <View style={styles.button}>
+                                <Text style={styles.buttonText}>Tìm kiếm</Text>
+                            </View>
+                        </TouchableOpacity> */}
                     </Card>
                 </View>
                 <View style={styles.category}>
-                    <Text>hihi</Text>
-                </View>
-                <Text style={styles.titleList}>Xe dành cho bạn</Text>
-                <View style={styles.listCar}>
-                    <CardCar />
+                    <Text style={styles.titleList}>Xe dành cho bạn</Text>
+                    <View style={styles.listCar}>
+                        <CardCar />
+                    </View>
                 </View>
             </View>
         </ScrollView>
@@ -153,7 +184,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         borderRadius: 30,
         width: 350,
-        height: 280,
+        height: 325,
         padding: 0,
         borderWidth: 1,
     },
@@ -174,13 +205,13 @@ const styles = StyleSheet.create({
         fontWeight: 'bold'
     },
     dateFromTo: {
-        marginTop: 18,
-        marginHorizontal: 40
+        marginTop: 22,
+        marginHorizontal: 46
     },
     fonts_1: {
         marginBottom: 10,
         marginLeft: 10,
-        color: '#ACACAC',
+        color: '#6D6D6D',
         fontWeight: 'bold',
     },
     fonts_2: {
@@ -196,11 +227,11 @@ const styles = StyleSheet.create({
     button: {
         backgroundColor: '#773BFF',
         height: 40,
-        width: 249,
-        marginTop: 10,
-        marginLeft: 50,
+        width: 290,
+        marginTop: 22,
+        marginLeft: 30,
         marginRight: 20,
-        borderRadius: 30
+        borderRadius: 30,
     },
     buttonText: {
         textAlign: 'center',
@@ -208,8 +239,7 @@ const styles = StyleSheet.create({
         color: 'white'
     },
     category: {
-        marginTop: 310,
-        marginLeft: 15
+        marginTop: 350,
     },
     listCar: {
         marginTop: 5,
@@ -241,6 +271,15 @@ const styles = StyleSheet.create({
         width: 14,
         height: 14,
         backgroundColor: '#d1d5db',
+    },
+    inputDate: {
+        borderColor: '#ccc',
+        borderWidth: 1,
+        borderRadius: 5,
+        padding: 10,
+        fontSize: 15,
+        marginRight: 10,
+        width: 150
     },
 });
 

@@ -1,6 +1,11 @@
-import { View, Text, Image, ScrollView, SafeAreaView, StyleSheet, TouchableOpacity, Dimensions } from 'react-native'
-import React from 'react'
-import FontAwesome from 'react-native-vector-icons/FontAwesome5';
+
+import React, { useContext, useEffect, useState } from 'react';
+import { View, Text, Image, ScrollView, SafeAreaView, StyleSheet, TouchableOpacity } from 'react-native';
+import { AuthConText } from '../store/auth-context';
+import { useIsFocused, useRoute } from '@react-navigation/native';
+import axios from 'axios';
+import { apiCar } from '../api/apiConfig';
+import { Divider } from 'react-native-paper';
 
 const categories = [
   {
@@ -9,7 +14,7 @@ const categories = [
   },
   {
     img: require('../assets/seat.png'),
-    label: 'Số ghế',
+    label: 'Số chỗ',
   },
   {
     img: require('../assets/gasoline.png'),
@@ -19,170 +24,149 @@ const categories = [
     img: require('../assets/gear_stick.png'),
     label: 'Truyền động',
   },
-  {
-    img: require('../assets/sale.png'),
-    label: 'Giá tốt',
-  },
 ];
-
-const items = [
-  {
-    img: 'https://images.unsplash.com/photo-1623659248894-1a0272243054?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2405&q=80',
-    name: 'Audi R8',
-    price: 158600,
-    stars: 4.45,
-    reviews: 124,
-    saved: true,
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1064&q=80',
-    name: 'Porsche 911',
-    price: 160100,
-    stars: 4.81,
-    reviews: 409,
-    saved: false,
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1590656364826-5f13b8e32cdc?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1065&q=80',
-    name: 'Nissan GTR',
-    price: 225500,
-    stars: 4.3,
-    reviews: 72,
-    saved: false,
-  },
-];
-
 
 export default function ListProductScreen({ navigation }) {
+  const authCtx = useContext(AuthConText);
+  const token = authCtx.access_token;
+  const route = useRoute();
+  const { startDate, endDate } = route.params;
+
+  const isFocused = useIsFocused();
+  const [carList, setCarList] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [fuels, setFuels] = useState([]);
+  const [motions, setMotions] = useState([]);
+  const [seats, setSeats] = useState([]);
+  const [parkingLots, setParkingLots] = useState([]);
+
+  useEffect(() => {
+    filterCar();
+  }, [isFocused, brands, fuels, motions, seats, parkingLots]);
+
+  const filterCar = async () => {
+    try {
+      const response = await axios.get(`${apiCar.filterCar}`, {
+        params: {
+          start_date: startDate,
+          end_date: endDate,
+          brands: brands.join(','),
+          fuels: fuels.join(','),
+          motions: motions.join(','),
+          seats: seats.join(','),
+          parking_lots: parkingLots.join(','),
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setCarList(response.data);
+    } catch (error) {
+      console.log('Failed to filter car by date: ', error);
+      // Handle error state or further actions
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <ScrollView>
           {/* Search bar */}
-          <View style={{ flexDirection: 'row', marginHorizontal: 13, marginVertical: 15 }}>
-            <TouchableOpacity onPress={() => {
-              navigation.navigate('Home')
-            }}>
-              <Image style={{ marginRight: 10, width: 35, height: 35, marginTop: 8 }} source={require('../assets/arrow_back.png')} />
+          <View style={styles.searchBar}>
+            <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+              <Image style={styles.backButton} source={require('../assets/arrow_back.png')} />
             </TouchableOpacity>
-            <View style={{ width: 320, height: 50, backgroundColor: '#E6E6E6', flexDirection: 'row', justifyContent: 'space-between', padding: 16 }}>
-              <Text style={{ fontWeight: '600' }}>20h,08/05/ 2024 - 19h,09/05/2024</Text>
-              <Image style={{ width: 22, height: 22 }} source={require('../assets/search.png')} />
+            <View style={styles.searchInput}>
+              <Text style={styles.searchText}>20h,08/05/ 2024 - 19h,09/05/2024</Text>
+              <Image style={styles.searchIcon} source={require('../assets/search.png')} />
             </View>
           </View>
 
           {/* Category bar */}
-          <ScrollView
-            contentContainerStyle={styles.listContent}
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}>
-            {categories.map(({ img, label, color }, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => {
-                  // handle onPress
-                }}>
-                <View style={[styles.tag, { backgroundColor: 'white', borderColor: '#DADADA', borderWidth: 1 }]}>
-                  <Image source={img} style={styles.tagImg} />
-                  <Text style={styles.tagLabel}>{label}</Text>
+          <ScrollView contentContainerStyle={styles.categoryBar} horizontal showsHorizontalScrollIndicator={false}>
+            {categories.map(({ img, label }, index) => (
+              <TouchableOpacity key={index} onPress={() => { }}>
+                <View style={styles.categoryItem}>
+                  <Image source={img} style={styles.categoryIcon} />
+                  <Text style={styles.categoryLabel}>{label}</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
-          {/* ListCard */}
-          <View style={{ paddingHorizontal: 24 }}>
-            {items.map(({ img, name, price, stars, reviews, saved }, index) => {
-              return (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => {
-                    navigation.navigate('Detail')
-                  }}>
-                  <View style={styles.card}>
-                    <View style={styles.cardTop}>
-                      <Image
-                        alt=""
-                        resizeMode="cover"
-                        style={styles.cardImg}
-                        source={{ uri: img }} />
+          {/* Car list */}
+          <View style={styles.carListContainer}>
+            {carList.map((car) => (
+              <TouchableOpacity
+                key={car.id}
+                onPress={() => navigation.navigate('Detail', { carId: car.id, startDate: startDate, endDate: endDate })}
+                style={styles.carItem}>
+                <Image source={{ uri: car.images[0] }} style={styles.carImage} />
+                <View style={styles.carDetails}>
+                  <Text style={styles.carName}>
+                    {car.car_model.brand} {car.car_model.model} {car.car_model.year}
+                  </Text>
+
+
+                  <View style={styles.carFooter}>
+                    <View style={styles.starContainer}>
+                      <Image source={require('../assets/star.png')} style={styles.starIcon} />
+                      <Text style={styles.rating}>{car.rating}</Text>
                     </View>
-                    <View style={styles.cardBody}>
-                      <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle}>{name}</Text>
-                        <Text style={styles.cardPrice}>
-                          <Text style={{ fontWeight: '600' }}>{price.toLocaleString('en-US')} đ </Text>/
-                          ngày
-                        </Text>
-                      </View>
-                      <View style={styles.cardFooter}>
-                        <Image style={{ width: 15, height: 15 }} source={require('../assets/star.png')} />
-                        <Text style={styles.cardStars}>{stars}</Text>
-                        <Text style={styles.cardReviews}>({reviews} reviews)</Text>
-                      </View>
+                    <View style={styles.tripContainer}>
+                      <Image source={require('../assets/completeTrip.png')} style={styles.tripIcon} />
+                      <Text style={styles.tripCount}>{car.total_trip} chuyến</Text>
                     </View>
                   </View>
-                </TouchableOpacity>
-              );
-            })}
+                  <Divider style={{ marginTop: 15 }} />
+                  <View style={{ marginTop: 10, justifyContent: 'flex-end', alignItems: 'flex-end' }}>
+                    <Text style={styles.carPrice}>{car.price.toLocaleString('en-US')} VNĐ / ngày</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
         </ScrollView>
       </SafeAreaView>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 24,
-    paddingHorizontal: 0,
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-  },
-  title: {
-    paddingHorizontal: 24,
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1d1d1d',
-    marginBottom: 12,
-  },
-  /** List */
-  list: {
-    marginBottom: 24,
-  },
-  listHeader: {
+  searchBar: {
     flexDirection: 'row',
+    marginHorizontal: 13,
+    marginVertical: 15,
     alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 10,
+    width: 35,
+    height: 35,
+    marginTop: 8,
+  },
+  searchInput: {
+    flex: 1,
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-  },
-  listTitle: {
-    fontWeight: '600',
-    fontSize: 20,
-    lineHeight: 28,
-    color: '#323142',
-  },
-  listAction: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    height: 50,
+    backgroundColor: '#E6E6E6',
+    padding: 16,
   },
-  listActionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 20,
-    color: '#706f7b',
-    marginRight: 2,
+  searchText: {
+    fontWeight: '600',
   },
-  listContent: {
-    paddingBottom: 18,
-    paddingTop: 5,
+  searchIcon: {
+    width: 22,
+    height: 22,
+  },
+  categoryBar: {
     paddingHorizontal: 18,
+    paddingVertical: 5,
+    flexDirection: 'row',
   },
-  /** tag */
-  tag: {
+  categoryItem: {
     width: 100,
     paddingVertical: 10,
     paddingHorizontal: 3,
@@ -190,24 +174,29 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     marginHorizontal: 6,
+    backgroundColor: 'white',
+    borderColor: '#DADADA',
+    borderWidth: 1,
   },
-  tagImg: {
+  categoryIcon: {
     width: 25,
     height: 25,
     marginBottom: 12,
   },
-  tagLabel: {
+  categoryLabel: {
     fontWeight: '600',
     fontSize: 13,
     lineHeight: 18,
     color: '#252117',
   },
-  /** Card */
-  card: {
-    position: 'relative',
+  carListContainer: {
+    paddingHorizontal: 24,
+    marginVertical: 20
+  },
+  carItem: {
     borderRadius: 8,
     backgroundColor: '#fff',
-    marginBottom: 16,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -217,64 +206,58 @@ const styles = StyleSheet.create({
     shadowRadius: 1.41,
     elevation: 2,
   },
-  cardLikeWrapper: {
-    position: 'absolute',
-    zIndex: 1,
-    top: 12,
-    right: 12,
-  },
-  cardLike: {
-    width: 48,
-    height: 48,
-    borderRadius: 9999,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardTop: {
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  cardImg: {
+  carImage: {
     width: '100%',
     height: 160,
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
   },
-  cardBody: {
-    padding: 12,
+  carDetails: {
+    padding: 18,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardTitle: {
+  carName: {
     fontSize: 17,
-    fontWeight: '500',
+    fontWeight: 'bold',
     color: '#232425',
   },
-  cardPrice: {
+  carPrice: {
     fontSize: 15,
-    fontWeight: '400',
-    color: '#232425',
+    fontWeight: 'bold',
+    color: '#5457FB'
   },
-  cardFooter: {
-    marginTop: 8,
+  carFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    marginTop: 12,
   },
-  cardStars: {
-    marginLeft: 2,
+  starContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 25,
+    // marginBottom: 10
+  },
+  starIcon: {
+    width: 15,
+    height: 15,
     marginRight: 6,
+  },
+  rating: {
     fontSize: 14,
     fontWeight: '500',
     color: '#232425',
   },
-  cardReviews: {
+  tripContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tripIcon: {
+    width: 15,
+    height: 15,
+    marginRight: 6,
+  },
+  tripCount: {
     fontSize: 14,
-    fontWeight: '400',
-    color: '#595a63',
+    fontWeight: '500',
+    color: '#232425',
   },
 });

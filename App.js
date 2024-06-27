@@ -26,6 +26,8 @@ import ContractScreen from './screens/ContractScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PaymentMethodScreen from './screens/PaymentMethodScreen';
 import DetailTrip from './screens/DetailTrip';
+import PaymentScreen from './screens/PaymentScreen';
+import SuccessScreen from './screens/SuccessScreen';
 
 const Stack = createNativeStackNavigator();
 const Bottoms = createBottomTabNavigator();
@@ -229,6 +231,22 @@ const AuthenticatedStack = () => {
         options={{
           headerBackTitleVisible: false,
           title: 'Chi tiết lịch sử',
+        }}
+      />
+      <Stack.Screen
+        name='Payment'
+        component={PaymentScreen}
+        options={{
+          headerBackTitleVisible: false,
+          headerShown: false
+        }}
+      />
+      <Stack.Screen
+        name='Success'
+        component={SuccessScreen}
+        options={{
+          headerBackTitleVisible: false,
+          headerShown: false
         }}
       />
     </Stack.Navigator>

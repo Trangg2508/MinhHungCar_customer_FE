@@ -142,11 +142,11 @@ export default function HomeScreen() {
                     <View style={styles.listCar}>
                         <CardCar />
                     </View>
-                    <TouchableOpacity onPress={() => navigation.navigate('PayMethod')}>
+                    {/* <TouchableOpacity onPress={() => navigation.navigate('PayMethod')}>
                         <View style={styles.button}>
                             <Text style={styles.buttonText}>Test</Text>
                         </View>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                 </View>
             </View>
         </ScrollView>
@@ -185,8 +185,8 @@ const styles = StyleSheet.create({
     card: {
         marginTop: 10,
         borderRadius: 30,
-        width: 350,
-        height: 325,
+        width: 355,
+        height: 330,
         padding: 0,
         borderWidth: 1,
     },
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     },
     dateFromTo: {
         marginTop: 22,
-        marginHorizontal: 46
+        marginHorizontal: 50
     },
     fonts_1: {
         marginBottom: 10,
@@ -229,8 +229,8 @@ const styles = StyleSheet.create({
     button: {
         backgroundColor: '#773BFF',
         height: 40,
-        width: 290,
-        marginTop: 22,
+        width: 295,
+        marginTop: 25,
         marginLeft: 30,
         marginRight: 20,
         borderRadius: 30,

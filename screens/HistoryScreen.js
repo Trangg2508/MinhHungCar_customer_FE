@@ -10,18 +10,21 @@ const getStatusStyles = (status) => {
   switch (status) {
     case 'no_filter':
       return { borderColor: '#F89F36', color: '#F89F36' };
-    case 'completed':
-      return { borderColor: '#15891A', color: '#15891A' };
-    case 'renting':
-      return { borderColor: '#24D02B', color: '#24D02B' };
-    case 'canceled':
-      return { borderColor: 'red', color: 'red' };
-    case 'ordered':
-      return { borderColor: '#F4BB4C', color: '#F4BB4C' };
     case 'waiting_contract_payment':
       return { borderColor: '#56AEFF', color: '#56AEFF' };
-    default:
+    case 'waiting_for_agreement':
       return { borderColor: 'gray', color: 'gray' };
+    case 'ordered':
+      return { borderColor: '#F4BB4C', color: '#F4BB4C' };
+    case 'renting':
+      return { borderColor: '#24D02B', color: '#24D02B' };
+    case 'completed':
+      return { borderColor: '#15891A', color: '#15891A' };
+    case 'canceled':
+      return { borderColor: 'red', color: 'red' };
+
+
+
   }
 };
 
@@ -30,12 +33,15 @@ const getStatusStyles = (status) => {
 
 const statusConvert = {
   no_filter: 'Tất cả',
-  completed: 'Hoàn thành',
-  renting: 'Đang thuê',
-  canceled: 'Đã hủy',
-  ordered: 'Đã đặt',
-  waiting_for_agreement: 'Chờ ký hợp đồng',
+  waiting_for_agreement: 'Chờ chấp thuận',
   waiting_contract_payment: 'Chờ thanh toán',
+  ordered: 'Đã đặt',
+  renting: 'Đang thuê',
+  completed: 'Hoàn thành',
+  canceled: 'Đã hủy',
+
+
+
 };
 
 

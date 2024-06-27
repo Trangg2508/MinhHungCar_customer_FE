@@ -47,7 +47,7 @@ export default function CardCar() {
   const renderItem = ({ item }) => (
     <TouchableOpacity
       onPress={() => {
-        navigation.navigate('Detail');
+        // navigation.navigate('Detail');
       }}>
       <View style={{ paddingHorizontal: 10 }}>
         <View style={styles.card}>

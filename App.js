@@ -25,6 +25,7 @@ import AuthConTextProvider, { AuthConText } from './store/auth-context';
 import ContractScreen from './screens/ContractScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PaymentMethodScreen from './screens/PaymentMethodScreen';
+import DetailTrip from './screens/DetailTrip';
 
 const Stack = createNativeStackNavigator();
 const Bottoms = createBottomTabNavigator();
@@ -220,6 +221,14 @@ const AuthenticatedStack = () => {
         options={{
           headerBackTitleVisible: false,
           title: 'Thanh toán',
+        }}
+      />
+      <Stack.Screen
+        name='DetailTrip'
+        component={DetailTrip}
+        options={{
+          headerBackTitleVisible: false,
+          title: 'Chi tiết lịch sử',
         }}
       />
     </Stack.Navigator>

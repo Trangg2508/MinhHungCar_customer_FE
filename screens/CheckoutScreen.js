@@ -1,4 +1,4 @@
-import { View, Text, SafeAreaView, ScrollView, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, StyleSheet, Image, Alert, ActivityIndicator } from 'react-native';
 import React, { useContext, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Divider, Switch } from 'react-native-paper';
@@ -26,6 +26,13 @@ export default function CheckoutScreen() {
 
     const [contractID, setContractID] = useState('')
     const [selectedCollateral, setSelectedCollateral] = useState('cash');
+    const [rentPricePerDay, setRentPricePerDay] = useState(0);
+    const [insurancePricePerDay, setInsurancePricePerDay] = useState(0);
+    const [totalPrice, setTotalPrice] = useState(0);
+    const [prepaid, setPrepaid] = useState(0);
+    const [payDirect, setPayDirect] = useState(0);
+
+    const [isLoadingPrice, setLoadingPrice] = useState(true)
 
     const handleOptionSelect = (option) => {
         setSelectedCollateral(option);
@@ -44,7 +51,8 @@ export default function CheckoutScreen() {
 
     useEffect(() => {
         getCarDetail();
-    }, [carId])
+        calculatePricing()
+    }, [carId, parsedStartDate, parsedEndDate])
 
     const getCarDetail = async () => {
         try {
@@ -61,42 +69,53 @@ export default function CheckoutScreen() {
         try {
             const response = await axios.post(apiCar.rentCar,
                 {
-                    "car_id": carId,
-                    "start_date": parsedStartDate,
-                    "end_date": parsedEndDate,
-                    "collateral_type": selectedCollateral
+                    car_id: carId,
+                    start_date: parsedStartDate,
+                    end_date: parsedEndDate,
+                    collateral_type: selectedCollateral
                 },
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
-            setContractID(response.contract.id)
-            console.log("contractID: ", response.contract.id)
-            // await getContractDetail()
+            setContractID(response.data.contract.id)
+            console.log("contractID: ", response.data.contract.id)
             setLoading(false)
         } catch (error) {
             console.log('Rent car fail: ', error)
         }
     }
 
-
-
-    const agreeContract = async () => {
+    const calculatePricing = async () => {
         try {
-            const response = await axios.put(apiCar.agreeContract,
-                {
-                    "customer_contract_id": contractID
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
+            const response = await axios.get(`https://minhhungcar.xyz/customer/calculate_rent_pricing?car_id=${carId}&start_date=${parsedStartDate}&end_date=${parsedEndDate}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            const { rent_price_quotation, insurance_price_quotation, total_amount, prepaid_amount } = response.data;
+
+            // Update state with the fetched values
+            setRentPricePerDay(rent_price_quotation);
+            setInsurancePricePerDay(insurance_price_quotation);
+            setTotalPrice(total_amount);
+            setPrepaid(prepaid_amount);
+
+            // Calculate payDirect based on totalPrice and prepaid (if needed)
+            setPayDirect(total_amount - prepaid_amount);
+            console.log('Fetch price successfully: ', totalPrice)
+            setLoadingPrice(false); // Set loading state to false after data is fetched
         } catch (error) {
-            console.log('Agree contract fail: ', error)
+            console.log('Failed to fetch pricing: ', error);
+            setLoadingPrice(false); // Ensure loading state is set to false on error as well
         }
-    }
+    };
+
+
+
+
 
     // Handle date change for start date
     const handleStartDateChange = (event, selectedDate) => {
@@ -124,6 +143,11 @@ export default function CheckoutScreen() {
             setParsedEndDate(currentDate);
         }
     };
+
+    const handleRent = async () => {
+        await rentCar();
+        navigation.navigate('Contract', { contractID: contractID })
+    }
 
     return (
         <View style={{ flex: 1 }}>
@@ -255,33 +279,35 @@ export default function CheckoutScreen() {
 
                                 <View style={styles.priceContainer}>
                                     <Text style={{ fontSize: 20, marginBottom: 20, fontWeight: 'bold', marginHorizontal: 25, marginVertical: 20 }}>Bảng tính giá</Text>
-                                    <View style={styles.price}>
-                                        <View style={styles.priceDetail}>
-                                            <Text style={styles.priceTitle}>Đơn giá thuê</Text>
-                                            <Text style={styles.priceText}>668.800 đ/ngày</Text>
+                                    {isLoading ? (
+                                        <View style={styles.loadingContainer}>
+                                            <ActivityIndicator message='' />
                                         </View>
-                                        <View style={styles.priceDetail}>
-                                            <Text style={styles.priceTitle}>Số ngày thuê</Text>
-                                            <Text style={styles.priceText}>668.800 đ/ngày</Text>
+                                    ) : (
+                                        <View style={styles.price}>
+                                            <View style={styles.priceDetail}>
+                                                <Text style={styles.priceTitle}>Đơn giá thuê</Text>
+                                                <Text style={styles.priceText}>{rentPricePerDay} đ/ngày</Text>
+                                            </View>
+                                            <View style={styles.priceDetail}>
+                                                <Text style={styles.priceTitle}>Bảo hiểm thuê xe</Text>
+                                                <Text style={styles.priceText}>{insurancePricePerDay} đ/ngày</Text>
+                                            </View>
+                                            <Divider style={styles.divider} />
+                                            <View style={styles.priceDetail}>
+                                                <Text style={styles.priceTitleColor}>Thành tiền</Text>
+                                                <Text style={styles.priceTextColor}>{totalPrice} đ</Text>
+                                            </View>
+                                            <View style={styles.priceDetail}>
+                                                <Text style={styles.priceTitleColor}>Đặt cọc qua ứng dụng</Text>
+                                                <Text style={styles.priceTextColor}>{prepaid} đ</Text>
+                                            </View>
+                                            <View style={styles.priceDetail}>
+                                                <Text style={styles.priceTitleColor}>Thanh toán khi nhận xe</Text>
+                                                <Text style={styles.priceTextColor}>{payDirect} đ</Text>
+                                            </View>
                                         </View>
-                                        <View style={styles.priceDetail}>
-                                            <Text style={styles.priceTitle}>Bảo hiểm thuê xe</Text>
-                                            <Text style={styles.priceText}>61.801 đ/ngày</Text>
-                                        </View>
-                                        <Divider style={styles.divider} />
-                                        <View style={styles.priceDetail}>
-                                            <Text style={styles.priceTitleColor}>Thành tiền</Text>
-                                            <Text style={styles.priceTextColor}>750.601 đ</Text>
-                                        </View>
-                                        <View style={styles.priceDetail}>
-                                            <Text style={styles.priceTitleColor}>Đặt cọc qua ứng dụng</Text>
-                                            <Text style={styles.priceTextColor}>214.601 đ</Text>
-                                        </View>
-                                        <View style={styles.priceDetail}>
-                                            <Text style={styles.priceTitleColor}>Thanh toán khi nhận xe</Text>
-                                            <Text style={styles.priceTextColor}>436.000 đ</Text>
-                                        </View>
-                                    </View>
+                                    )}
                                 </View>
 
                                 <View style={styles.requireContainer}>
@@ -323,9 +349,7 @@ export default function CheckoutScreen() {
                         </View>
 
                         <TouchableOpacity
-                            onPress={() => {
-                                navigation.navigate('Contract', { contractID: contractID })
-                            }}>
+                            onPress={handleRent}>
                             <View style={styles.btn}>
                                 <Text style={styles.btnText}>Thuê xe</Text>
                             </View>

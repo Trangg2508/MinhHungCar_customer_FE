@@ -1,48 +1,158 @@
-import { View, Text, StatusBar, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
-import React, { useState } from 'react'
+import { View, Text, StatusBar, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { Image } from 'react-native'
 import { Divider } from 'react-native-paper';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
+import { AuthConText } from '../store/auth-context';
+import axios from 'axios';
 
-const CustomText = ({ children }) => {
-  let colorStyle;
-  let fontWeightStyle;
-
-  switch (children) {
-    case 'Hoàn thành':
-      colorStyle = { color: '#15891A' };
-      fontWeightStyle = { fontWeight: 'bold' };
-      break;
-    case 'Đang thuê':
-      colorStyle = { color: '#24D02B' };
-      fontWeightStyle = { fontWeight: 'bold' };
-      break;
-    case 'Đã hủy':
-      colorStyle = { color: '#F11B1B' };
-      fontWeightStyle = { fontWeight: 'bold' };
-      break;
-    case 'Đã đặt':
-      colorStyle = { color: '#EE933E' };
-      fontWeightStyle = { fontWeight: 'bold' };
-      break;
-    case 'Chờ duyệt':
-      colorStyle = { color: '#985314' };
-      fontWeightStyle = { fontWeight: 'bold' };
-      break;
+const getStatusStyles = (status) => {
+  switch (status) {
+    case 'no_filter':
+      return { borderColor: '#F89F36', color: '#F89F36' };
+    case 'completed':
+      return { borderColor: '#15891A', color: '#15891A' };
+    case 'renting':
+      return { borderColor: '#24D02B', color: '#24D02B' };
+    case 'canceled':
+      return { borderColor: 'red', color: 'red' };
+    case 'ordered':
+      return { borderColor: '#F4BB4C', color: '#F4BB4C' };
+    case 'waiting_contract_payment':
+      return { borderColor: '#56AEFF', color: '#56AEFF' };
     default:
-      colorStyle = {};
-      fontWeightStyle = {};
+      return { borderColor: 'gray', color: 'gray' };
   }
+};
 
-  return <Text style={[colorStyle, fontWeightStyle]}>{children}</Text>;
+
+
+
+const statusConvert = {
+  no_filter: 'Tất cả',
+  completed: 'Hoàn thành',
+  renting: 'Đang thuê',
+  canceled: 'Đã hủy',
+  ordered: 'Đã đặt',
+  waiting_for_agreement: 'Chờ ký hợp đồng',
+  waiting_contract_payment: 'Chờ thanh toán',
 };
 
 
 export default function HistoryScreen() {
+  const navigation = useNavigation();
+  const authCtx = useContext(AuthConText);
+  const token = authCtx.access_token;
 
-  const [activeTab, setActiveTab] = useState('Hoàn thành');
+  const [activeTab, setActiveTab] = useState('no_filter');
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [trip, setTrip] = useState([])
+  const [page, setPage] = useState(1);
+
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    getAllContract()
+  }, [activeTab, page, isFocused])
+
+  useFocusEffect(
+    useCallback(() => {
+      getAllContract();
+    }, [activeTab, page, isFocused])
+  );
+
+  console.log(isFocused);
+
+  const getAllContract = async () => {
+    let status = [activeTab];
+
+    try {
+      const response = await axios.get(`https://minhhungcar.xyz/customer/contracts?offset=${(page - 1) * 2}&limit=100&contract_status=${status.join(',')}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const contracts = response.data;
+      setTrip(contracts)
+    } catch (error) {
+      console.log('Fail to get all contract: ', error)
+    }
+  }
 
   const handleTabPress = (tabName) => {
     setActiveTab(tabName);
+  };
+
+  const formatDate = (isoDateString) => {
+    const date = new Date(isoDateString);
+
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  };
+
+  const navigateToScreen = (trip) => {
+    if (trip && trip.status === 'waiting_for_agreement') {
+      navigation.navigate('Contract', { contractID: trip.id });
+
+    } else if (trip) {
+      navigation.navigate('DetailTrip');
+    }
+  };
+
+  const renderItem = ({ item }) => {
+    const formattedStartDate = formatDate(item.start_date);
+    const formattedEndDate = formatDate(item.end_date);
+
+    return (
+      <TouchableOpacity onPress={() => navigateToScreen(item)}>
+        <View style={styles.card}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
+            <View style={{ flexDirection: 'row', marginTop: 10 }}>
+              <Text style={{ fontWeight: '600' }}>{formattedStartDate}</Text>
+              <Text style={{ fontWeight: 'bold', marginHorizontal: 5 }}>→</Text>
+              <Text style={{ fontWeight: '600' }}>{formattedEndDate}</Text>
+            </View>
+            <View style={[styles.statusContainer, getStatusStyles(item.status)]}>
+              <Text style={{ color: getStatusStyles(item.status).color, fontWeight: 'bold' }}>
+                {statusConvert[item.status]}
+              </Text>
+            </View>
+          </View>
+          <Divider style={{ marginBottom: 10, marginTop: -5 }} />
+          <View style={{}}>
+            <View style={styles.cardBody}>
+              <Text style={styles.cardTitle}>{item.car.car_model.brand} {item.car.car_model.model} {item.car.car_model.year}</Text>
+              <Text style={styles.cardTag}>Biển số xe: {item.car.license_plate}</Text>
+            </View>
+            <Text style={{ fontWeight: '700', color: 'red', textAlign: 'right' }}>Thành tiền: {item.rent_price.toLocaleString()} VNĐ </Text>
+            <View>
+              {(item.status === 'waiting_contract_payment' || item.status === 'ordered' || item.status === 'renting' || item.status === 'completed') && (
+                <TouchableOpacity
+                  onPress={() => { navigation.navigate('Contract', { contractID: item.id }) }}
+                  style={[styles.button, { alignSelf: 'flex-end', marginTop: 10 }]}
+                >
+                  <Text style={{ color: 'white', fontSize: 14 }}>Xem hợp đồng</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+
+
+  const renderFooter = () => {
+
+    return isLoading ?
+      <View style={styles.loaderStyle}>
+        <ActivityIndicator size="large" color="#aaa" />
+      </View> : <></>
   };
 
   return (
@@ -50,277 +160,49 @@ export default function HistoryScreen() {
       <StatusBar barStyle="dark-content" />
 
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView >
-          <View style={styles.container}>
+        <View style={styles.container}>
 
-            {/* Tab */}
-            <View style={styles.tabContainer}>
-  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollViewContent}>
-    <TouchableOpacity onPress={() => handleTabPress('Hoàn thành')} style={[styles.tabItem, activeTab === 'Hoàn thành' && styles.activeTabItem]}>
-      <Text style={[styles.tabText, activeTab === 'Hoàn thành' && { color: '#773BFF', fontWeight: '600' }]}>Hoàn thành</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => handleTabPress('Đang thuê')} style={[styles.tabItem, activeTab === 'Đang thuê' && styles.activeTabItem]}>
-      <Text style={[styles.tabText, activeTab === 'Đang thuê' && { color: '#773BFF', fontWeight: '600' }]}>Đang thuê</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => handleTabPress('Chờ duyệt')} style={[styles.tabItem, activeTab === 'Chờ duyệt' && styles.activeTabItem]}>
-      <Text style={[styles.tabText, activeTab === 'Chờ duyệt' && { color: '#773BFF', fontWeight: '600' }]}>Chờ duyệt</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => handleTabPress('Đã hủy')} style={[styles.tabItem, activeTab === 'Đã hủy' && styles.activeTabItem]}>
-      <Text style={[styles.tabText, activeTab === 'Đã hủy' && { color: '#773BFF', fontWeight: '600' }]}>Đã hủy</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => handleTabPress('Đã đặt')} style={[styles.tabItem, activeTab === 'Đã đặt' && styles.activeTabItem]}>
-      <Text style={[styles.tabText, activeTab === 'Đã đặt' && { color: '#773BFF', fontWeight: '600' }]}>Đã đặt</Text>
-    </TouchableOpacity>
-  </ScrollView>
-</View>
-
-
-            {/* Card */}
-            <View style={styles.card}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                <View style={{ flexDirection: 'row' }}>
-                  <Text style={{ color: '#773BFF', fontWeight: '600' }}>#209876527</Text>
-                  <Text style={{ fontWeight: 'bold', marginHorizontal: 5 }}>|</Text>
-                  <Text style={{ fontWeight: '600' }}>09/05/2024</Text>
-                </View>
-                <CustomText>Hoàn thành</CustomText>
-              </View>
-              <View style={{ flexDirection: 'row' }}>
-                <Image
-                  resizeMode="cover"
-                  source={{ uri: 'https://images.unsplash.com/photo-1617704548623-340376564e68?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8dGVzbGElMjBtb2RlbCUyMHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60' }}
-                  style={styles.cardImg}
-                />
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTag}>Biển số xe: K38BIG</Text>
-                  <Text style={styles.cardTitle}>Tesla Model S</Text>
-                  <View style={styles.cardRow}>
-                    <View style={styles.cardRowItem}>
-                      <Image
-                        source={require('../assets/star.png')}
-                        style={styles.cardRowItemImg}
-                      />
-                      <Text style={styles.cardRowItemText}>5</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-              <Divider style={{ marginVertical: 20 }} />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                <Text style={{ color: '#808080' }}>1 sản phẩm</Text>
-                <Text>Thành tiền: {' '}
-                  <Text style={{ fontWeight: 'bold' }}>750.000 đ</Text>
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 }}>
-                <TouchableOpacity onPress={() => {
-
-                }}>
-                  <View style={{ width: 106, height: 35, borderColor: '#773BFF', borderWidth: 1, borderRadius: 5, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: '#773BFF', fontWeight: 'bold' }}>Đánh giá</Text>
-                  </View>
+          {/* Tab */}
+          <View style={styles.tabContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollViewContent}>
+              {Object.keys(statusConvert).map((statusKey) => (
+                <TouchableOpacity
+                  key={statusKey}
+                  style={[styles.tabItem, activeTab === statusKey && styles.activeTabItem]}
+                  onPress={() => handleTabPress(statusKey)}
+                >
+                  <Text style={[styles.tabText, activeTab === statusKey && styles.activeTabText]}>
+                    {statusConvert[statusKey]}
+                  </Text>
                 </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.card}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                <View style={{ flexDirection: 'row' }}>
-                  <Text style={{ color: '#773BFF', fontWeight: '600' }}>#209876527</Text>
-                  <Text style={{ fontWeight: 'bold', marginHorizontal: 5 }}>|</Text>
-                  <Text style={{ fontWeight: '600' }}>09/05/2024</Text>
-                </View>
-                <CustomText>Đang thuê</CustomText>
-              </View>
-              <View style={{ flexDirection: 'row' }}>
-                <Image
-                  resizeMode="cover"
-                  source={{ uri: 'https://images.unsplash.com/photo-1617704548623-340376564e68?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8dGVzbGElMjBtb2RlbCUyMHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60' }}
-                  style={styles.cardImg}
-                />
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTag}>Biển số xe: K38BIG</Text>
-                  <Text style={styles.cardTitle}>Tesla Model S</Text>
-                  <View style={styles.cardRow}>
-                    <View style={styles.cardRowItem}>
-                      <Image
-                        source={require('../assets/star.png')}
-                        style={styles.cardRowItemImg}
-                      />
-                      <Text style={styles.cardRowItemText}>5</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-              <Divider style={{ marginVertical: 20 }} />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-
-                <Text style={{ color: '#808080' }}>1 sản phẩm</Text>
-                <Text>Thành tiền: {' '}
-                  <Text style={{ fontWeight: 'bold' }}>750.000 đ</Text>
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 }}>
-                <TouchableOpacity onPress={() => {
-
-                }}>
-                  <View style={{ width: 115, height: 35, borderColor: '#5FB8DE', borderWidth: 1, borderRadius: 5, justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
-                    <Text style={{ color: '#5FB8DE', fontWeight: 'bold' }}>Chat với admin</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => {
-
-                }}>
-                  <View style={{ width: 106, height: 35, backgroundColor: '#FF3B47', borderRadius: 5, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Hủy chuyến</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.card}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                <View style={{ flexDirection: 'row' }}>
-                  <Text style={{ color: '#773BFF', fontWeight: '600' }}>#209876527</Text>
-                  <Text style={{ fontWeight: 'bold', marginHorizontal: 5 }}>|</Text>
-                  <Text style={{ fontWeight: '600' }}>09/05/2024</Text>
-                </View>
-                <CustomText>Đã đặt</CustomText>
-              </View>
-              <View style={{ flexDirection: 'row' }}>
-                <Image
-                  resizeMode="cover"
-                  source={{ uri: 'https://images.unsplash.com/photo-1617704548623-340376564e68?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8dGVzbGElMjBtb2RlbCUyMHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60' }}
-                  style={styles.cardImg}
-                />
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTag}>Biển số xe: K38BIG</Text>
-                  <Text style={styles.cardTitle}>Tesla Model S</Text>
-                  <View style={styles.cardRow}>
-                    <View style={styles.cardRowItem}>
-                      <Image
-                        source={require('../assets/star.png')}
-                        style={styles.cardRowItemImg}
-                      />
-                      <Text style={styles.cardRowItemText}>5</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-              <Divider style={{ marginVertical: 20 }} />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                <Text style={{ color: '#808080' }}>1 sản phẩm</Text>
-                <Text>Thành tiền: {' '}
-                  <Text style={{ fontWeight: 'bold' }}>750.000 đ</Text>
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 }}>
-                <TouchableOpacity onPress={() => {
-
-                }}>
-                  <View style={{ width: 106, height: 35, backgroundColor: '#FF3B47', borderRadius: 5, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Hủy chuyến</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.card}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                <View style={{ flexDirection: 'row' }}>
-                  <Text style={{ color: '#773BFF', fontWeight: '600' }}>#209876527</Text>
-                  <Text style={{ fontWeight: 'bold', marginHorizontal: 5 }}>|</Text>
-                  <Text style={{ fontWeight: '600' }}>09/05/2024</Text>
-                </View>
-                <CustomText>Chờ duyệt</CustomText>
-              </View>
-              <View style={{ flexDirection: 'row' }}>
-                <Image
-                  resizeMode="cover"
-                  source={{ uri: 'https://images.unsplash.com/photo-1617704548623-340376564e68?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8dGVzbGElMjBtb2RlbCUyMHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60' }}
-                  style={styles.cardImg}
-                />
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTag}>Biển số xe: K38BIG</Text>
-                  <Text style={styles.cardTitle}>Tesla Model S</Text>
-                  <View style={styles.cardRow}>
-                    <View style={styles.cardRowItem}>
-                      <Image
-                        source={require('../assets/star.png')}
-                        style={styles.cardRowItemImg}
-                      />
-                      <Text style={styles.cardRowItemText}>5</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-              <Divider style={{ marginVertical: 20 }} />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                <Text style={{ color: '#808080' }}>1 sản phẩm</Text>
-                <Text>Thành tiền: {' '}
-                  <Text style={{ fontWeight: 'bold' }}>750.000 đ</Text>
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 }}>
-                <TouchableOpacity onPress={() => {
-
-                }}>
-                  <View style={{ width: 106, height: 35, borderColor: '#773BFF', borderWidth: 1, borderRadius: 5, justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
-                    <Text style={{ color: '#773BFF', fontWeight: 'bold' }}>Thanh toán</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => {
-
-                }}>
-                  <View style={{ width: 106, height: 35, backgroundColor: '#FF3B47', borderRadius: 5, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Hủy chuyến</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.card}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                <View style={{ flexDirection: 'row' }}>
-                  <Text style={{ color: '#773BFF', fontWeight: '600' }}>#209876527</Text>
-                  <Text style={{ fontWeight: 'bold', marginHorizontal: 5 }}>|</Text>
-                  <Text style={{ fontWeight: '600' }}>09/05/2024</Text>
-                </View>
-                <CustomText>Đã hủy</CustomText>
-              </View>
-              <View style={{ flexDirection: 'row' }}>
-                <Image
-                  resizeMode="cover"
-                  source={{ uri: 'https://images.unsplash.com/photo-1617704548623-340376564e68?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8dGVzbGElMjBtb2RlbCUyMHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60' }}
-                  style={styles.cardImg}
-                />
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTag}>Biển số xe: K38BIG</Text>
-                  <Text style={styles.cardTitle}>Tesla Model S</Text>
-                  <View style={styles.cardRow}>
-                    <View style={styles.cardRowItem}>
-                      <Image
-                        source={require('../assets/star.png')}
-                        style={styles.cardRowItemImg}
-                      />
-                      <Text style={styles.cardRowItemText}>5</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-              <Divider style={{ marginVertical: 20 }} />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                <Text style={{ color: '#808080' }}>1 sản phẩm</Text>
-                <Text>Thành tiền: {' '}
-                  <Text style={{ fontWeight: 'bold' }}>750.000 đ</Text>
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 }}>
-              </View>
-            </View>
+              ))}
+            </ScrollView>
           </View>
-        </ScrollView>
+
+
+          {/* Card */}
+
+          {trip.length > 0 ?
+            <FlatList
+              data={trip}
+              renderItem={renderItem}
+              keyExtractor={(item) => {
+                return item.id.toString()
+              }}
+              ListFooterComponent={renderFooter}
+            // onEndReached={!isLoading && loadMoreItem}
+            // onEndReachedThreshold={0}
+            // contentContainerStyle={styles.listContainer}
+            />
+            :
+            <View >
+              <View style={{ justifyContent: 'center', alignItems: 'center', marginTop: 30 }}>
+                <Text style={{ fontSize: 16, color: '#686D76', marginBottom: 20 }}>Chưa có chuyến nào {statusConvert[activeTab]}</Text>
+
+              </View>
+            </View>
+          }
+        </View>
       </SafeAreaView>
     </View>
   )
@@ -332,50 +214,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    marginBottom: 15,
+    marginBottom: 10,
     backgroundColor: '#fff',
-    padding: 25,
-    height: 290
-  },
-  cardImg: {
-    width: 160,
-    height: 100,
-    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 25,
+    height: 'auto',
   },
   cardBody: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 5,
+    marginBottom: 12
   },
   cardTag: {
     fontSize: 13,
     color: '#939393',
-    marginBottom: 9,
-    textTransform: 'capitalize',
+    textTransform: 'uppercase',
   },
   cardTitle: {
     fontSize: 20,
     color: '#000',
     marginBottom: 8,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
   cardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardRowItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardRowItemImg: {
-    width: 22,
-    height: 22,
-    borderRadius: 9999,
-    marginRight: 6,
-  },
-  cardRowItemText: {
-    fontSize: 13,
-    color: '#000',
+    // flexDirection: 'row',
+    // alignItems: 'center',
+    // justifyContent: 'space-between',
+    marginTop: 5
   },
   tabContainer: {
     height: 60,
@@ -398,4 +263,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'black',
   },
+  statusContainer: {
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+  },
+  button: {
+    width: 150,
+    height: 30,
+    backgroundColor: '#773BFF',
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center'
+  }
 })

@@ -35,15 +35,21 @@ export default function ContractScreen({ navigation }) {
       });
       setPdfURL(response.data.url);
       setContractStatus(response.data.status);
-      console.log('Fetch contract successfully!');
-      // setTimeout(() => {
+      console.log('Fetch contract successfully!', response.data);
       setLoading(false);
-      // }, 1500);
     } catch (error) {
-      console.log('Fetch contract error: ', error);
+      console.log('Fetch contract error:', error);
       setLoading(false);
+      // Handle specific errors, e.g., 404 Not Found
+      if (error.response && error.response.status === 404) {
+        Alert.alert('Lỗi', 'Hợp đồng không tồn tại.');
+      } else {
+        Alert.alert('Lỗi', 'Không thể tải thông tin hợp đồng. Vui lòng thử lại sau.');
+      }
     }
   };
+
+
 
   const handleAgreeSwitch = (value) => {
     setIsChecked(value);
@@ -51,7 +57,8 @@ export default function ContractScreen({ navigation }) {
 
   const handleSignContract = async () => {
     try {
-      const response = await axios.put(`https://minhhungcar.xyz/customer/contract/agree`,
+      const response = await axios.put(
+        `https://minhhungcar.xyz/customer/contract/agree`,
         {
           customer_contract_id: contractID
         },
@@ -59,17 +66,28 @@ export default function ContractScreen({ navigation }) {
           headers: {
             Authorization: `Bearer ${token}`
           }
-        });
-      setPaymentURL(response.data.payment_url);
-      setPaymentQR(response.data.qr_code_image)
-      console.log(response.data.status);
+        }
+      );
+
+      // Directly use response.data here instead of state variables
+      const { payment_url, qr_code_image } = response.data;
+
+      // Log the values to ensure they are correctly received
+      console.log('Payment URL:', payment_url);
+      console.log('QR Code Image:', qr_code_image);
+
+      // Use response.data directly when navigating
       Alert.alert(
         'Chúc mừng',
         'Bạn đã ký hợp đồng thành công! Vui lòng thanh toán',
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('Car')
+            onPress: () =>
+              navigation.navigate('PayMethod', {
+                payment_url,
+                qr_code_image
+              })
           }
         ]
       );

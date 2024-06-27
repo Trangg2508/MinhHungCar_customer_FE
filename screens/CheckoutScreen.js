@@ -47,12 +47,12 @@ export default function CheckoutScreen() {
         }
     }, [startDate, endDate]);
 
-    console.log("parsedStartDate: ", parsedStartDate)
 
     useEffect(() => {
         getCarDetail();
         calculatePricing()
     }, [carId, parsedStartDate, parsedEndDate])
+
 
     const getCarDetail = async () => {
         try {
@@ -70,8 +70,8 @@ export default function CheckoutScreen() {
             const response = await axios.post(apiCar.rentCar,
                 {
                     car_id: carId,
-                    start_date: parsedStartDate,
-                    end_date: parsedEndDate,
+                    start_date: parsedStartDate.toISOString(),
+                    end_date: parsedEndDate.toISOString(),
                     collateral_type: selectedCollateral
                 },
                 {
@@ -89,14 +89,13 @@ export default function CheckoutScreen() {
 
     const calculatePricing = async () => {
         try {
-            const response = await axios.get(`https://minhhungcar.xyz/customer/calculate_rent_pricing?car_id=${carId}&start_date=${parsedStartDate}&end_date=${parsedEndDate}`, {
+            const response = await axios.get(`https://minhhungcar.xyz/customer/calculate_rent_pricing?car_id=${carId}&start_date=${parsedStartDate.toISOString()}&end_date=${parsedEndDate.toISOString()}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
             const { rent_price_quotation, insurance_price_quotation, total_amount, prepaid_amount } = response.data;
-
             // Update state with the fetched values
             setRentPricePerDay(rent_price_quotation);
             setInsurancePricePerDay(insurance_price_quotation);
@@ -126,8 +125,10 @@ export default function CheckoutScreen() {
         } else {
             setParsedStartDate(currentDate);
             // Automatically set end date to 1 day after start date
-            const nextDay = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+            const nextDay = new Date(currentDate.getTime() + 23 * 60 * 60 * 1000);
             setParsedEndDate(nextDay);
+
+            calculatePricing();
         }
     };
 
@@ -135,12 +136,12 @@ export default function CheckoutScreen() {
     const handleEndDateChange = (event, selectedDate) => {
         const currentDate = selectedDate || parsedEndDate;
         const minDate = parsedStartDate || new Date(); // Minimum date is the start date or current date
-        const maxDate = new Date(minDate.getTime() + 24 * 60 * 60 * 1000); // 1 day after the start date
         if (currentDate <= minDate) {
             Alert.alert('', 'End date should be after the start date.');
 
         } else {
             setParsedEndDate(currentDate);
+            calculatePricing();
         }
     };
 
@@ -279,7 +280,7 @@ export default function CheckoutScreen() {
 
                                 <View style={styles.priceContainer}>
                                     <Text style={{ fontSize: 20, marginBottom: 20, fontWeight: 'bold', marginHorizontal: 25, marginVertical: 20 }}>Bảng tính giá</Text>
-                                    {isLoading ? (
+                                    {isLoadingPrice ? (
                                         <View style={styles.loadingContainer}>
                                             <ActivityIndicator message='' />
                                         </View>
@@ -287,24 +288,24 @@ export default function CheckoutScreen() {
                                         <View style={styles.price}>
                                             <View style={styles.priceDetail}>
                                                 <Text style={styles.priceTitle}>Đơn giá thuê</Text>
-                                                <Text style={styles.priceText}>{rentPricePerDay} đ/ngày</Text>
+                                                <Text style={styles.priceText}>{rentPricePerDay.toLocaleString()} đ/ngày</Text>
                                             </View>
                                             <View style={styles.priceDetail}>
                                                 <Text style={styles.priceTitle}>Bảo hiểm thuê xe</Text>
-                                                <Text style={styles.priceText}>{insurancePricePerDay} đ/ngày</Text>
+                                                <Text style={styles.priceText}>{insurancePricePerDay.toLocaleString()} đ/ngày</Text>
                                             </View>
                                             <Divider style={styles.divider} />
                                             <View style={styles.priceDetail}>
                                                 <Text style={styles.priceTitleColor}>Thành tiền</Text>
-                                                <Text style={styles.priceTextColor}>{totalPrice} đ</Text>
+                                                <Text style={styles.priceTextColor}>{totalPrice.toLocaleString()} đ</Text>
                                             </View>
                                             <View style={styles.priceDetail}>
                                                 <Text style={styles.priceTitleColor}>Đặt cọc qua ứng dụng</Text>
-                                                <Text style={styles.priceTextColor}>{prepaid} đ</Text>
+                                                <Text style={styles.priceTextColor}>{prepaid.toLocaleString()} đ</Text>
                                             </View>
                                             <View style={styles.priceDetail}>
                                                 <Text style={styles.priceTitleColor}>Thanh toán khi nhận xe</Text>
-                                                <Text style={styles.priceTextColor}>{payDirect} đ</Text>
+                                                <Text style={styles.priceTextColor}>{payDirect.toLocaleString()} đ</Text>
                                             </View>
                                         </View>
                                     )}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { StyleSheet, Text, View, TouchableOpacity, Image, FlatList } from 'react-native'
 
-export default function NotificationScreen () {
+export default function NotificationScreen() {
   const data = [
     {
       id: 3,
@@ -70,7 +70,7 @@ export default function NotificationScreen () {
         let attachment = <View />
 
         let mainContentStyle
-        
+
         return (
           <TouchableOpacity style={styles.container}>
             <Image source={require('../assets/bell.png')} style={styles.avatar} />

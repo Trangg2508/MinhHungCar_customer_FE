@@ -32,6 +32,7 @@ export default function ListProductScreen({ navigation }) {
   const route = useRoute();
   const { startDate, endDate } = route.params;
 
+
   const isFocused = useIsFocused();
   const [carList, setCarList] = useState([]);
   const [brands, setBrands] = useState([]);

@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, SafeAreaView, Image, StyleSheet } from 'react-native';
 import React, { useRef, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Divider } from 'react-native-paper';
 import { WebView } from 'react-native-webview';
 
@@ -8,38 +8,27 @@ export default function PaymentMethodScreen() {
     const navigation = useNavigation();
     const webViewRef = useRef();
 
-    const qrURL = 'https://rentalcar-capstone.s3.ap-southeast-2.amazonaws.com/f3afd973-5d8b-4ddd-8110-62af1c0a34c0.png';
-
-    const paymentURL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=18645000&vnp_BankCode=NCB&vnp_Command=pay&vnp_CreateDate=20240627125500&vnp_CurrCode=VND&vnp_ExpireDate=20240704125500&vnp_IpAddr=%3A%3A1&vnp_Locale=vn&vnp_OrderInfo=3.186450&vnp_OrderType=other&vnp_ReturnUrl=https%3A%2F%2Fgoogle.com&vnp_TmnCode=UPUEB83F&vnp_TxnRef=27125500&vnp_Version=2.1.0&vnp_SecureHash=6555222bd323f52f3d866316c18ba9fbd229c2037efeb4f57926be191ad2d9b73e27d6a78b986ac06074adac14fec4b81d388b64371585e2232201758b6e2169';
-
-    const [show, setShow] = useState(false);
-
-    const handlePayment = () => {
-        setShow(true);
-    };
-
-    const injectedJavascript = `(function() {
-        window.postMessage = function(data) {
-            window.ReactNativeWebView.postMessage(data);
-        };
-    })()`;
+    const route = useRoute()
+    const { payment_url, qr_code_image } = route.params
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
             <View style={{ paddingVertical: 24, paddingHorizontal: 30 }}>
                 <Text style={{ fontSize: 17, fontWeight: '700' }}>Chọn phương thức thanh toán</Text>
-                <TouchableOpacity onPress={handlePayment} style={styles.paymentButton}>
+                <TouchableOpacity onPress={() => {
+                    navigation.navigate('Payment', { payment_url })
+                }} style={styles.paymentButton}>
                     <Image source={require('../assets/vnpayLogo.png')} style={styles.vnpayLogo} />
                     <Image source={require('../assets/right.png')} style={styles.arrowIcon} />
                 </TouchableOpacity>
-                {show && (
+                {/* {show && (
                     <View style={{ flex: 1 }}>
                         <WebView
                             source={{ uri: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=18645000&vnp_BankCode=NCB&vnp_Command=pay&vnp_CreateDate=20240627125500&vnp_CurrCode=VND&vnp_ExpireDate=20240704125500&vnp_IpAddr=%3A%3A1&vnp_Locale=vn&vnp_OrderInfo=3.186450&vnp_OrderType=other&vnp_ReturnUrl=https%3A%2F%2Fgoogle.com&vnp_TmnCode=UPUEB83F&vnp_TxnRef=27125500&vnp_Version=2.1.0&vnp_SecureHash=6555222bd323f52f3d866316c18ba9fbd229c2037efeb4f57926be191ad2d9b73e27d6a78b986ac06074adac14fec4b81d388b64371585e2232201758b6e2169' }}
                             style={styles.webview}
                             startInLoadingState={true}
                         />
-                        {/* <WebView
+                        <WebView
                             injectedJavaScript={injectedJavascript}
                             startInLoadingState
                             scalesPageToFit
@@ -65,9 +54,9 @@ export default function PaymentMethodScreen() {
                                     // Close the WebView or navigate as needed
                                 }
                             })}
-                        /> */}
+                        />
                     </View>
-                )}
+                )} */}
                 <View style={styles.dividerContainer}>
                     <Divider style={styles.divider} />
                     <Text style={styles.dividerText}>hoặc với mã QR</Text>
@@ -75,7 +64,7 @@ export default function PaymentMethodScreen() {
                 </View>
                 <View style={{ justifyContent: 'center', alignItems: 'center' }}>
                     <View style={styles.QR}>
-                        <Image style={styles.qrImage} source={{ uri: qrURL }} />
+                        <Image style={styles.qrImage} source={{ uri: qr_code_image }} />
                     </View>
                 </View>
             </View>

@@ -1,12 +1,12 @@
+// ContractScreen.js
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { AuthConText } from '../store/auth-context';
 import axios from 'axios';
 import { useRoute } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
-import Spinner from '../components/UI/Spinner';
-import { Switch } from 'react-native';
 import LoadingOverlay from '../components/UI/LoadingOverlay';
+import { Switch } from 'react-native';
 
 export default function ContractScreen({ navigation }) {
   const route = useRoute();
@@ -14,12 +14,9 @@ export default function ContractScreen({ navigation }) {
   const authCtx = useContext(AuthConText);
   const token = authCtx.access_token;
   const [pdfURL, setPdfURL] = useState('');
-  const [contractStatus, setContractStatus] = useState('')   //3 status: "waiting_for_agreement", "waiting_contract_payment", "ordered"
-  const [paymentURL, setPaymentURL] = useState(null);
-  const [paymentQR, setPaymentQR] = useState(null)
+  const [contractStatus, setContractStatus] = useState('');
   const [isLoading, setLoading] = useState(true);
   const [isChecked, setIsChecked] = useState(false);
-  const [refresh, setRefresh] = useState(true)
   const webViewRef = useRef();
 
   useEffect(() => {
@@ -35,12 +32,9 @@ export default function ContractScreen({ navigation }) {
       });
       setPdfURL(response.data.url);
       setContractStatus(response.data.status);
-      console.log('Fetch contract successfully!', response.data);
       setLoading(false);
     } catch (error) {
-      console.log('Fetch contract error:', error);
       setLoading(false);
-      // Handle specific errors, e.g., 404 Not Found
       if (error.response && error.response.status === 404) {
         Alert.alert('Lỗi', 'Hợp đồng không tồn tại.');
       } else {
@@ -48,8 +42,6 @@ export default function ContractScreen({ navigation }) {
       }
     }
   };
-
-
 
   const handleAgreeSwitch = (value) => {
     setIsChecked(value);
@@ -60,7 +52,8 @@ export default function ContractScreen({ navigation }) {
       const response = await axios.put(
         `https://minhhungcar.xyz/customer/contract/agree`,
         {
-          customer_contract_id: contractID
+          customer_contract_id: contractID,
+          return_url: 'https://google.com'
         },
         {
           headers: {
@@ -68,31 +61,18 @@ export default function ContractScreen({ navigation }) {
           }
         }
       );
-
-      // Directly use response.data here instead of state variables
       const { payment_url, qr_code_image } = response.data;
-
-      // Log the values to ensure they are correctly received
-      console.log('Payment URL:', payment_url);
-      console.log('QR Code Image:', qr_code_image);
-
-      // Use response.data directly when navigating
       Alert.alert(
         'Chúc mừng',
-        'Bạn đã ký hợp đồng thành công! Vui lòng thanh toán',
+        'Bạn đã chấp thuận hợp đồng thành công! Vui lòng thanh toán',
         [
           {
             text: 'OK',
-            onPress: () =>
-              navigation.navigate('PayMethod', {
-                payment_url,
-                qr_code_image
-              })
+            onPress: () => navigation.navigate('PayMethod', { payment_url, qr_code_image })
           }
         ]
       );
     } catch (error) {
-      console.log('Sign contract error: ', error);
       Alert.alert('Lỗi', 'Không thể ký hợp đồng. Vui lòng thử lại!');
     }
   };
@@ -111,16 +91,15 @@ export default function ContractScreen({ navigation }) {
             source={{ uri: `https://docs.google.com/gview?embedded=true&url=${pdfURL}` }}
             style={styles.webview}
             onLoadEnd={data => {
-              const { nativeEvent } = data
-              const { title } = nativeEvent
+              const { nativeEvent } = data;
+              const { title } = nativeEvent;
               if (!title.trim()) {
                 webViewRef.current?.stopLoading();
                 webViewRef.current?.reload();
-                setRefresh(prev => !prev)
               }
             }}
           />
-          {contractStatus === 'waiting_for_agreement' &&
+          {contractStatus === 'waiting_for_agreement' && (
             <>
               <View style={styles.switchContainer}>
                 <Text style={styles.switchText}>Tôi đồng ý với các điều khoản trong hợp đồng</Text>
@@ -137,10 +116,10 @@ export default function ContractScreen({ navigation }) {
                 onPress={handleSignContract}
                 disabled={!isChecked}
               >
-                <Text style={styles.buttonText}>Ký hợp đồng</Text>
+                <Text style={styles.buttonText}>Chấp thuận hợp đồng</Text>
               </TouchableOpacity>
             </>
-          }
+          )}
         </>
       )}
     </SafeAreaView>
@@ -157,11 +136,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 20,
-    fontSize: 18,
-    color: '#333',
   },
   switchContainer: {
     flexDirection: 'row',

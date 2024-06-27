@@ -133,18 +133,20 @@ export default function HomeScreen() {
                                 <Text style={styles.buttonText}>Tìm kiếm</Text>
                             </View>
                         </TouchableOpacity>
-                        {/* <TouchableOpacity onPress={() => navigation.navigate('PayMethod')}>
-                            <View style={styles.button}>
-                                <Text style={styles.buttonText}>Tìm kiếm</Text>
-                            </View>
-                        </TouchableOpacity> */}
+
                     </Card>
+
                 </View>
                 <View style={styles.category}>
                     <Text style={styles.titleList}>Xe dành cho bạn</Text>
                     <View style={styles.listCar}>
                         <CardCar />
                     </View>
+                    <TouchableOpacity onPress={() => navigation.navigate('PayMethod')}>
+                        <View style={styles.button}>
+                            <Text style={styles.buttonText}>Test</Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
             </View>
         </ScrollView>

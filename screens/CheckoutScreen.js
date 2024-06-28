@@ -17,29 +17,23 @@ export default function CheckoutScreen() {
     const route = useRoute();
     const { carId, startDate, endDate } = route.params;
 
-    console.log("carId: ", carId);
-
-    const [carDetail, setCarDetail] = useState({})
+    const [carDetail, setCarDetail] = useState({});
     const [isLoading, setLoading] = useState(true);
     const [parsedStartDate, setParsedStartDate] = useState(null);
     const [parsedEndDate, setParsedEndDate] = useState(null);
-
-    const [contractID, setContractID] = useState('')
+    const [contractID, setContractID] = useState('');
     const [selectedCollateral, setSelectedCollateral] = useState('cash');
     const [rentPricePerDay, setRentPricePerDay] = useState(0);
     const [insurancePricePerDay, setInsurancePricePerDay] = useState(0);
     const [totalPrice, setTotalPrice] = useState(0);
     const [prepaid, setPrepaid] = useState(0);
     const [payDirect, setPayDirect] = useState(0);
-
-    const [isLoadingPrice, setLoadingPrice] = useState(true)
+    const [isLoadingPrice, setLoadingPrice] = useState(true);
 
     const handleOptionSelect = (option) => {
         setSelectedCollateral(option);
     };
 
-
-    // Effect to parse ISO strings on initial load
     useEffect(() => {
         if (startDate && endDate) {
             setParsedStartDate(new Date(startDate));
@@ -47,108 +41,115 @@ export default function CheckoutScreen() {
         }
     }, [startDate, endDate]);
 
-
     useEffect(() => {
         getCarDetail();
-        calculatePricing()
-    }, [carId, parsedStartDate, parsedEndDate])
+    }, [carId]);
 
+    useEffect(() => {
+        if (parsedStartDate && parsedEndDate) {
+            calculatePricing();
+        }
+    }, [parsedStartDate, parsedEndDate]);
+
+    useEffect(() => {
+        if (contractID) {
+            navigation.navigate('Contract', { contractID: contractID });
+        }
+    }, [contractID]);
 
     const getCarDetail = async () => {
         try {
-            const response = await axios.get(`https://minhhungcar.xyz/car/${carId}`)
+            const response = await axios.get(`https://minhhungcar.xyz/car/${carId}`);
             setCarDetail(response.data);
-            console.log('Fetch detail successfully: ', response.data)
-            setLoading(false)
+            setLoading(false);
         } catch (error) {
-            console.log('Fetch detail fail: ', error)
+            console.log('Fetch detail fail: ', error);
         }
-    }
+    };
 
     const rentCar = async () => {
         try {
-            const response = await axios.post(apiCar.rentCar,
+            const response = await axios.post(
+                apiCar.rentCar,
                 {
                     car_id: carId,
-                    start_date: parsedStartDate.toISOString(),
-                    end_date: parsedEndDate.toISOString(),
-                    collateral_type: selectedCollateral
+                    start_date: parsedStartDate,
+                    end_date: parsedEndDate,
+                    collateral_type: selectedCollateral,
                 },
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-            setContractID(response.data.contract.id)
-            console.log("contractID: ", response.data.contract.id)
-            setLoading(false)
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            const id = response.data.contract.id;
+            setContractID(id - 1);
+            setLoading(false);
         } catch (error) {
-            console.log('Rent car fail: ', error)
+            console.log('Rent car fail: ', error);
         }
-    }
+    };
 
     const calculatePricing = async () => {
+        if (!parsedStartDate || !parsedEndDate) return;
         try {
-            const response = await axios.get(`https://minhhungcar.xyz/customer/calculate_rent_pricing?car_id=${carId}&start_date=${parsedStartDate.toISOString()}&end_date=${parsedEndDate.toISOString()}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
+            const response = await axios.get(
+                `https://minhhungcar.xyz/customer/calculate_rent_pricing?car_id=${carId}&start_date=${parsedStartDate.toISOString()}&end_date=${parsedEndDate.toISOString()}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
-            });
+            );
 
             const { rent_price_quotation, insurance_price_quotation, total_amount, prepaid_amount } = response.data;
-            // Update state with the fetched values
             setRentPricePerDay(rent_price_quotation);
             setInsurancePricePerDay(insurance_price_quotation);
             setTotalPrice(total_amount);
             setPrepaid(prepaid_amount);
-
-            // Calculate payDirect based on totalPrice and prepaid (if needed)
             setPayDirect(total_amount - prepaid_amount);
-            console.log('Fetch price successfully: ', totalPrice)
-            setLoadingPrice(false); // Set loading state to false after data is fetched
+            setLoadingPrice(false);
         } catch (error) {
             console.log('Failed to fetch pricing: ', error);
-            setLoadingPrice(false); // Ensure loading state is set to false on error as well
+            setLoadingPrice(false);
         }
     };
 
-
-
-
-
-    // Handle date change for start date
     const handleStartDateChange = (event, selectedDate) => {
         const currentDate = selectedDate || parsedStartDate;
-        const minDate = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours from now
+        const minDate = new Date(Date.now() + 2 * 60 * 60 * 1000);
         if (currentDate < minDate) {
-            Alert.alert('', 'Please select a date and time at least 2 hours in the future.');
+            Alert.alert('', 'Thời gian nhận xe ít nhất kể từ 2 tiếng tính từ hiện tại');
         } else {
             setParsedStartDate(currentDate);
-            // Automatically set end date to 1 day after start date
-            const nextDay = new Date(currentDate.getTime() + 23 * 60 * 60 * 1000);
-            setParsedEndDate(nextDay);
-
-            calculatePricing();
+            const nextDay = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+            if (nextDay <= parsedEndDate) {
+                setParsedEndDate(nextDay);
+            } else {
+                Alert.alert('', 'Không đủ 1 ngày');
+            }
         }
     };
 
-    // Handle date change for end date
     const handleEndDateChange = (event, selectedDate) => {
         const currentDate = selectedDate || parsedEndDate;
-        const minDate = parsedStartDate || new Date(); // Minimum date is the start date or current date
+        const minDate = parsedStartDate || new Date();
         if (currentDate <= minDate) {
-            Alert.alert('', 'End date should be after the start date.');
-
+            Alert.alert('', 'Ngày kết thúc phải sau ngày bắt đầu ít nhất 1 ngày');
         } else {
-            setParsedEndDate(currentDate);
-            calculatePricing();
+            if (currentDate - parsedStartDate < 24 * 60 * 60 * 1000) {
+                Alert.alert('', 'Thời gian thuê phải tối thiểu là 1 ngày');
+            } else {
+                setParsedEndDate(currentDate);
+            }
         }
     };
 
     const handleRent = async () => {
         await rentCar();
-        navigation.navigate('Contract', { contractID: contractID })
-    }
+    };
+
 
     return (
         <View style={{ flex: 1 }}>

@@ -19,7 +19,9 @@ export default function ContractScreen({ navigation }) {
   const [isChecked, setIsChecked] = useState(false);
   const webViewRef = useRef();
 
+
   useEffect(() => {
+    console.log("Received contractID in Contract screen:", contractID);
     getDetailContract();
   }, []);
 

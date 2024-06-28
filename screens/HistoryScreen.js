@@ -100,10 +100,27 @@ export default function HistoryScreen() {
     return `${day}/${month}/${year}`;
   };
 
+  //get last payment detail
+  const getLastPaymentDetail = async (contractID) => {
+    try {
+      const response = await axios.get(`https://minhhungcar.xyz/customer/last_payment_detail?customer_contract_id=${contractID}&payment_type=pre_pay`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const payment_url = response.data.customer_payment_document.payment_url;
+      const qr_code_image = response.data.document.url;
+      navigation.navigate('PayMethod', { payment_url, qr_code_image })
+    } catch (error) {
+      console.log("Fail to get last payment detail: ", error)
+    }
+  }
+
   const navigateToScreen = (trip) => {
     if (trip && trip.status === 'waiting_for_agreement') {
       navigation.navigate('Contract', { contractID: trip.id });
-
+    } else if (trip && trip.status === 'waiting_contract_payment') {
+      getLastPaymentDetail(trip.id)
     } else if (trip) {
       navigation.navigate('DetailTrip');
     }
@@ -195,7 +212,7 @@ export default function HistoryScreen() {
               keyExtractor={(item) => {
                 return item.id.toString()
               }}
-              ListFooterComponent={renderFooter}
+            // ListFooterComponent={renderFooter}
             // onEndReached={!isLoading && loadMoreItem}
             // onEndReachedThreshold={0}
             // contentContainerStyle={styles.listContainer}

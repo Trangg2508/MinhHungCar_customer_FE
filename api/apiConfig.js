@@ -12,6 +12,7 @@ export const apiAccount = {
 export const apiCar = {
     // method: get
     filterCar: `${endpoint}/customer/cars`,
+    fetchMetaData: `${endpoint}/register_car_metadata`,
 
     //method: post
     rentCar: `${endpoint}/customer/rent`,

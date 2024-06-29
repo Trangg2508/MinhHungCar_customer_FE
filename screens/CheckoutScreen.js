@@ -19,8 +19,8 @@ export default function CheckoutScreen() {
 
     const [carDetail, setCarDetail] = useState({});
     const [isLoading, setLoading] = useState(true);
-    const [parsedStartDate, setParsedStartDate] = useState(null);
-    const [parsedEndDate, setParsedEndDate] = useState(null);
+    const [parsedStartDate, setParsedStartDate] = useState(new Date());
+    const [parsedEndDate, setParsedEndDate] = useState(new Date());
     const [contractID, setContractID] = useState('');
     const [selectedCollateral, setSelectedCollateral] = useState('cash');
     const [rentPricePerDay, setRentPricePerDay] = useState(0);
@@ -118,16 +118,15 @@ export default function CheckoutScreen() {
 
     const handleStartDateChange = (event, selectedDate) => {
         const currentDate = selectedDate || parsedStartDate;
-        const minDate = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        const minDate = new Date(Date.now() + 2 * 60 * 60 * 1000); // Minimum start date, 2 hours from now
+
         if (currentDate < minDate) {
             Alert.alert('', 'Thời gian nhận xe ít nhất kể từ 2 tiếng tính từ hiện tại');
         } else {
             setParsedStartDate(currentDate);
-            const nextDay = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
-            if (nextDay <= parsedEndDate) {
+            const nextDay = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000); // Next day from the current start date
+            if (nextDay) {
                 setParsedEndDate(nextDay);
-            } else {
-                Alert.alert('', 'Không đủ 1 ngày');
             }
         }
     };

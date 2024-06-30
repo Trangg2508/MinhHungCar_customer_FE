@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   StyleSheet,
   SafeAreaView,
@@ -8,26 +8,77 @@ import {
   TextInput,
   ScrollView,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import axios from 'axios';
+import { apiAccount } from '../api/apiConfig';
+import LoadingOverlay from '../components/UI/LoadingOverlay';
+import { AuthConText } from '../store/auth-context';
 
 export default function ProfileScreen({ navigation }) {
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    YOB: '',
-    IDNum: '',
-  });
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [avatar, setAvatar] = useState(null);
+  const authCtx = useContext(AuthConText);
+  const token = authCtx.access_token;
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phoneNum, setPhoneNum] = useState('');
+  const [IDCard, setIDCard] = useState('');
+  const [driveLicense, setDriveLicense] = useState('');
+  const [email, setEmail] = useState('');
+  const [day, setDay] = useState('');
+  const [month, setMonth] = useState('');
+  const [year, setYear] = useState('');
+
+
+
+  const [isLoading, setLoading] = useState(true);
+
   const [avatarURL, setAvatarURL] = useState(null);
 
+  const [image, setImage] = useState({
+    selectedImage: null,
+    avatarURL: null,
+  });
+
+  useEffect(() => {
+    getProfile();
+  }, []);
+
+  const getProfile = async () => {
+    try {
+      const response = await axios.get(apiAccount.getProfile, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const dobDate = new Date(response.data.date_of_birth);
+      setDay(dobDate.getDate().toString().padStart(2, '0'));
+      setMonth((dobDate.getMonth() + 1).toString().padStart(2, '0'));
+      setYear(dobDate.getFullYear().toString());
+
+      setFirstName(response.data.first_name || '');
+      setLastName(response.data.last_name || '');
+      setPhoneNum(response.data.phone_number || '');
+      setIDCard(response.data.identification_card_number || '');
+      setEmail(response.data.email || '');
+      setDriveLicense(response.data.driving_license || '');
+      setAvatarURL(response.data.avatar_url || null);
+
+      console.log('Fetch profile successfully ', response.data);
+      setLoading(false);
+    } catch (error) {
+      console.log('Error fetching data:', error);
+    }
+  };
+
+
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -35,135 +86,263 @@ export default function ProfileScreen({ navigation }) {
 
     console.log(result);
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-      setAvatar({ uri: result.assets[0].uri });
-      setAvatarURL(null);
+    if (!result.cancelled) {
+      const imageUri = result.assets[0].uri;
+      setImage({
+        selectedImage: imageUri,
+        avatarURL: imageUri, // Update avatarURL when an image is picked
+      });
+      console.log('Picked image URI: ', imageUri);
     }
   };
+
+  const submitForm = async () => {
+    try {
+      // Validate phoneNum
+      if (!phoneNum || phoneNum.length !== 10 || !phoneNum.startsWith('0')) {
+        Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại có 10 chữ số và bắt đầu bằng số 0.');
+        return;
+      }
+
+      // Validate IDCard
+      if (IDCard.length < 9 || IDCard.length > 11) {
+        Alert.alert('Lỗi', 'Số CCCD không hợp lệ. Vui lòng nhập số từ 9 đến 11 chữ số.');
+        return;
+      }
+
+      // Validate driveLicense
+      // if (driveLicense.length !== 12) {
+      //   Alert.alert('Lỗi', 'Giấy phép lái xe không hợp lệ. Vui lòng nhập đúng 12 chữ số.');
+      //   return;
+      // }
+
+      // Validate year
+      const currentYear = new Date().getFullYear();
+      const enteredYear = parseInt(year, 10);
+      if (isNaN(enteredYear) || enteredYear < 1900 || enteredYear > currentYear) {
+        Alert.alert('Lỗi', 'Năm sinh không hợp lệ');
+        return;
+      }
+
+      // Combine day, month, and year into a formatted date
+      const formattedDob = `${year}-${month}-${day}T00:00:00Z`;
+
+      const formData = {
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: phoneNum,
+        identification_card_number: IDCard,
+        date_of_birth: formattedDob,
+        driving_license: driveLicense,
+      };
+
+      const response = await axios.put(apiAccount.updateProfile, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        console.log('Update successfully: ', response.data);
+        if (image.selectedImage) {
+          await uploadImage();
+        }
+        Alert.alert('Thành công', 'Bạn đã cập nhật thông tin thành công!');
+        getProfile();
+      } else {
+        console.log('Unexpected response status:', response.status);
+        Alert.alert('Lỗi', 'Đã xảy ra lỗi khi cập nhật thông tin.');
+      }
+    } catch (error) {
+      console.log('Error updating profile:', error);
+      Alert.alert('Lỗi', 'Đã xảy ra lỗi khi cập nhật thông tin.');
+    }
+  };
+
+
+  const uploadImage = async () => {
+    const imageFormData = new FormData();
+    imageFormData.append('file', {
+      uri: image.selectedImage,
+      name: 'avatar.jpg',
+      type: 'image/jpeg',
+    });
+    try {
+      const response = await axios.post(apiAccount.uploadProfileAvatar, imageFormData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      if (response.status === 200 || response.status === 201) {
+        setAvatarURL(response.data.url);
+        console.log('Upload image successfully: ', response.data);
+      } else {
+        console.log('Unexpected response status for image upload:', response.status);
+        Alert.alert('Lỗi', 'Đã xảy ra lỗi khi tải lên hình ảnh.');
+      }
+    } catch (error) {
+      console.log('Upload image failed!', error);
+      Alert.alert('Lỗi', 'Đã xảy ra lỗi khi tải lên hình ảnh.');
+    }
+  };
+
+
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView>
-        <View style={styles.container}>
-          <KeyboardAwareScrollView>
-            <View style={styles.avatarContainer}>
-              {selectedImage ? (
-                <Image key={selectedImage} style={styles.avatar} source={{ uri: selectedImage }} />
-              ) : avatarURL ? (
-                <Image style={styles.avatar} source={{ uri: avatarURL }} />
-              ) : (
-                <Image
-                  style={styles.avatar}
-                  source={{ uri: 'https://static.thenounproject.com/png/642902-200.png' }}
-                />
-              )}
-              {/* <TouchableOpacity style={styles.changeAvatarButton} onPress={pickImage}>
-    <Text style={styles.changeAvatarButtonText}>Choose from Library</Text>
-  </TouchableOpacity> */}
-              <TouchableOpacity style={styles.editIconButton} onPress={pickImage}>
-                <Image
-                  style={styles.editIcon}
-                  source={require('../assets/edit.png')}
-                />
-              </TouchableOpacity>
-            </View>
-
-
-            <View style={styles.form}>
-              <View style={styles.input}>
-                <Text style={styles.inputLabel}>Họ và tên*</Text>
-
-                <TextInput
-                  clearButtonMode="while-editing"
-                  onChangeText={name => setForm({ ...form, name })}
-                  placeholder="abc"
-                  placeholderTextColor="#6b7280"
-                  style={styles.inputControl}
-                  value={form.name} />
-              </View>
-
-              <View style={styles.input}>
-                <Text style={styles.inputLabel}>Số điện thoại*</Text>
-
-                <TextInput
-                  clearButtonMode="while-editing"
-                  onChangeText={phone => setForm({ ...form, phone })}
-                  placeholder="0987654321"
-                  placeholderTextColor="#6b7280"
-                  style={styles.inputControl}
-                  value={form.phone} />
-              </View>
-
-              <View style={styles.input}>
-                <Text style={styles.inputLabel}>Địa chỉ email</Text>
-
-                <TextInput
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  clearButtonMode="while-editing"
-                  keyboardType="email-address"
-                  // onChangeText={email => setForm({ ...form, email })}
-                  placeholder="abc123@gmail.com"
-                  placeholderTextColor="#B2B2B2"
-                  style={styles.inputControl}
-                  value={form.email}
-                  editable={false}
-                />
-              </View>
-
-
-
-              <View style={styles.input}>
-                <Text style={styles.inputLabel}>Năm sinh</Text>
-
-                <TextInput
-                  clearButtonMode="while-editing"
-                  onChangeText={YOB => setForm({ ...form, YOB })}
-                  placeholder="01/2024"
-                  placeholderTextColor="#6b7280"
-                  style={styles.inputControl}
-                  value={form.YOB} />
-              </View>
-
-              <View style={styles.input}>
-                <Text style={styles.inputLabel}>Số CCCD</Text>
-
-                <TextInput
-                  clearButtonMode="while-editing"
-                  onChangeText={IDNum => setForm({ ...form, IDNum })}
-                  placeholder="000000000000"
-                  placeholderTextColor="#6b7280"
-                  style={styles.inputControl}
-                  value={form.IDNum} />
-              </View>
-
-              <View style={styles.formActionDriving}>
-                <TouchableOpacity
-                  onPress={() => {
-                    navigation.navigate('Driving')
-                  }}>
-                  <View style={styles.btnDriving}>
-                    <Image style={{ width: 25, height: 25, marginRight: 10 }} source={require('../assets/IDCard.png')} />
-                    <Text style={styles.btnDrivingText}>Giấy phép lái xe</Text>
-                    <Image style={{ width: 20, height: 20, }} source={require('../assets/right.png')} />
-                  </View>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator message='' />
+          </View>
+        ) : (
+          <View style={styles.container}>
+            <KeyboardAwareScrollView>
+              <View style={styles.avatarContainer}>
+                {image.selectedImage ? (
+                  <Image key={image.selectedImage} style={styles.avatar} source={{ uri: image.selectedImage }} />
+                ) : avatarURL ? (
+                  <Image style={styles.avatar} source={{ uri: avatarURL }} />
+                ) : (
+                  <Image
+                    style={styles.avatar}
+                    source={{ uri: 'https://static.thenounproject.com/png/642902-200.png' }}
+                  />
+                )}
+                <TouchableOpacity style={styles.editIconButton} onPress={pickImage}>
+                  <Image style={styles.editIcon} source={require('../assets/edit.png')} />
                 </TouchableOpacity>
               </View>
+              <View style={styles.form}>
+                <View style={styles.input}>
+                  <Text style={styles.inputLabel}>Họ</Text>
+                  <TextInput
+                    clearButtonMode="while-editing"
+                    onChangeText={(firstName) => setFirstName(firstName)}
+                    placeholder="abc"
+                    placeholderTextColor="#6b7280"
+                    style={styles.inputControl}
+                    value={firstName}
+                  />
+                </View>
 
-              <View style={styles.formAction}>
-                <TouchableOpacity
-                  onPress={() => {
-                    // handle onPress
-                  }}>
-                  <View style={styles.btn}>
-                    <Text style={styles.btnText}>Lưu</Text>
+                <View style={styles.input}>
+                  <Text style={styles.inputLabel}>Tên</Text>
+                  <TextInput
+                    clearButtonMode="while-editing"
+                    onChangeText={(lastName) => setLastName(lastName)}
+                    placeholder="abc"
+                    placeholderTextColor="#6b7280"
+                    style={styles.inputControl}
+                    value={lastName}
+                  />
+                </View>
+                <View style={styles.input}>
+                  <Text style={styles.inputLabel}>Số điện thoại</Text>
+                  <TextInput
+                    clearButtonMode="while-editing"
+                    onChangeText={(phone) => setPhoneNum(phone)}
+                    placeholder="0987654321"
+                    placeholderTextColor="#6b7280"
+                    style={styles.inputControl}
+                    keyboardType="numeric"
+                    value={phoneNum}
+                    editable={false}
+                  />
+                </View>
+                <View style={styles.input}>
+                  <Text style={styles.inputLabel}>Địa chỉ email</Text>
+                  <TextInput
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    clearButtonMode="while-editing"
+                    keyboardType="email-address"
+                    placeholder="abc123@gmail.com"
+                    placeholderTextColor="#B2B2B2"
+                    style={styles.inputControl}
+                    value={email}
+                    editable={false}
+                  />
+                </View>
+                <View style={styles.input}>
+                  <Text style={styles.inputLabel}>Ngày sinh</Text>
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      onChangeText={(text) => {
+                        if (/^\d*$/.test(text) && text.length <= 2) {
+                          setDay(text);
+                        }
+                      }}
+                      placeholder="dd"
+                      placeholderTextColor="#6b7280"
+                      style={[styles.inputControl, styles.smallInput]}
+                      keyboardType="numeric"
+                      value={day}
+                    />
+                    <TextInput
+                      onChangeText={(text) => {
+                        if (/^\d*$/.test(text) && text.length <= 2) {
+                          setMonth(text);
+                        }
+                      }}
+                      placeholder="mm"
+                      placeholderTextColor="#6b7280"
+                      style={[styles.inputControl, styles.smallInput]}
+                      keyboardType="numeric"
+                      value={month}
+                    />
+                    <TextInput
+                      onChangeText={(text) => {
+                        if (/^\d*$/.test(text) && text.length <= 4) {
+                          setYear(text);
+                        }
+                      }}
+                      placeholder="yyyy"
+                      placeholderTextColor="#6b7280"
+                      style={[styles.inputControl, styles.smallInput]}
+                      keyboardType="numeric"
+                      value={year}
+                    />
                   </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAwareScrollView>
+                </View>
+                <View style={styles.input}>
+                  <Text style={styles.inputLabel}>Số CCCD</Text>
+                  <TextInput
+                    clearButtonMode="while-editing"
+                    onChangeText={(id) => setIDCard(id)}
+                    placeholder="000000000000"
+                    placeholderTextColor="#6b7280"
+                    style={styles.inputControl}
+                    value={IDCard}
+                  />
+                </View>
 
-        </View>
+                <View style={styles.formActionDriving}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      navigation.navigate('Driving')
+                    }}>
+                    <View style={styles.btnDriving}>
+                      <Image style={{ width: 25, height: 25, marginRight: 10 }} source={require('../assets/IDCard.png')} />
+                      <Text style={styles.btnDrivingText}>Giấy phép lái xe</Text>
+                      <Image style={{ width: 20, height: 20, }} source={require('../assets/right.png')} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.formAction}>
+                  <TouchableOpacity onPress={submitForm}>
+                    <View style={styles.btn}>
+                      <Text style={styles.btnText}>Lưu</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAwareScrollView>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -176,6 +355,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 0,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,
@@ -263,6 +447,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#222',
     borderStyle: 'solid',
+  },
+  smallInput: {
+    width: '30%',
+  },
+
+  inputRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
   },
   /** Button */
   btn: {

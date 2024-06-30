@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { apiAccount } from '../api/apiConfig';
+import { AuthConText } from '../store/auth-context';
+import axios from 'axios';
 
 export default function DrivingLicenseScreen() {
+    const authCtx = useContext(AuthConText);
+    const token = authCtx.access_token;
+
     const [form, setForm] = useState({
         images: [
             { field: 'licenseFront', uri: '' },
@@ -12,37 +18,8 @@ export default function DrivingLicenseScreen() {
         licenseNum: '',
     });
 
-    // useEffect(() => {
-    //     (async () => {
-    //         const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    //         const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-    //         if (libraryStatus !== 'granted' || cameraStatus !== 'granted') {
-    //             Alert.alert('Permission Denied', 'You need to grant camera and camera roll permissions to use this feature');
-    //         }
-    //     })();
-    // }, []);
+    const [loading, setLoading] = useState(false);
 
-    const showImagePickerOptions = (field) => {
-        Alert.alert(
-            'Upload Image',
-            'Choose an option',
-            [
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Take Photo',
-                    onPress: () => takePhoto(field),
-                },
-                {
-                    text: 'Choose from Library',
-                    onPress: () => pickImageFromLibrary(field),
-                },
-            ],
-            { cancelable: true }
-        );
-    };
 
     const pickImageFromLibrary = async (field) => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -60,24 +37,39 @@ export default function DrivingLicenseScreen() {
         }
     };
 
-    const takePhoto = async (field) => {
-        const result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 1,
+    const handleUpload = async () => {
+        const { images } = form;
+        if (images.some(image => !image.uri)) {
+            Alert.alert('Lỗi', 'Vui lòng thêm đủ số lượng hình ảnh');
+            return;
+        }
+
+        setLoading(true);
+
+        const formData = new FormData();
+        images.forEach((image, index) => {
+            formData.append('files', {
+                uri: image.uri,
+                name: `${image.field}.jpg`,
+                type: 'image/jpeg',
+            });
         });
 
-        if (!result.canceled) {
-            const updatedImages = form.images.map((image) =>
-                image.field === field ? { ...image, uri: result.assets[0].uri } : image
-            );
-            setForm({ ...form, images: updatedImages });
+        try {
+            const response = await axios.post(apiAccount.uploadDrivingLicense, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            console.log('License uploaded:', response);
+            Alert.alert('', 'Cập nhật thông tin giấy phép lái xe thành công!');
+        } catch (error) {
+            console.log('Error uploading license:', error);
+            Alert.alert('Lỗi', 'Có một vài lỗi xảy ra khi tải lên hình ảnh. Vui lòng thử lại');
+        } finally {
+            setLoading(false);
         }
-    };
-
-    const handleUpdate = () => {
-        // Handle update logic here, like sending data to server
-        Alert.alert('Update', 'License updated successfully');
     };
 
     return (
@@ -94,7 +86,7 @@ export default function DrivingLicenseScreen() {
                     <View style={styles.licenseUpload}>
                         <TouchableOpacity
                             style={styles.licenseUploadButton}
-                            onPress={() => showImagePickerOptions('licenseFront')}
+                            onPress={() => pickImageFromLibrary('licenseFront')}
                         >
                             {form.images.find(image => image.field === 'licenseFront').uri ? (
                                 <Image style={styles.licensePhoto} source={{ uri: form.images.find(image => image.field === 'licenseFront').uri }} />
@@ -109,7 +101,7 @@ export default function DrivingLicenseScreen() {
                     <View style={styles.licenseUpload}>
                         <TouchableOpacity
                             style={styles.licenseUploadButton}
-                            onPress={() => showImagePickerOptions('licenseBack')}
+                            onPress={() => pickImageFromLibrary('licenseBack')}
                         >
                             {form.images.find(image => image.field === 'licenseBack').uri ? (
                                 <Image style={styles.licensePhoto} source={{ uri: form.images.find(image => image.field === 'licenseBack').uri }} />
@@ -119,7 +111,7 @@ export default function DrivingLicenseScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
-                <View style={styles.licenseContainer}>
+                {/* <View style={styles.licenseContainer}>
                     <Text style={styles.title}>Số giấy phép lái xe</Text>
                     <Text style={styles.subTitle}>Dãy 12 chữ số ở mặt trước GPLX</Text>
                     <View style={styles.input}>
@@ -132,13 +124,15 @@ export default function DrivingLicenseScreen() {
                             value={form.licenseNum}
                         />
                     </View>
-                </View>
+                </View> */}
                 <View style={styles.formAction}>
-                    <TouchableOpacity
-                        onPress={handleUpdate}
-                    >
-                        <View style={styles.btn}>
-                            <Text style={styles.btnText}>Cập nhật</Text>
+                    <TouchableOpacity onPress={handleUpload} disabled={loading || form.images.filter(image => image.uri).length < 2}>
+                        <View style={[styles.btn, (loading || form.images.filter(image => image.uri).length < 2) && styles.btnDisabled]}>
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={styles.btnText}>Cập nhật</Text>
+                            )}
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -228,12 +222,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 5,
+        borderRadius: 6,
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderWidth: 1,
         backgroundColor: '#5548E2',
         borderColor: '#5548E2',
+    },
+    btnDisabled: {
+        backgroundColor: '#ccc',
+        borderColor: '#ccc',
     },
     btnText: {
         fontSize: 17,

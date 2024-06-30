@@ -163,17 +163,26 @@ export default function PaymentInformationScreen({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    if (isImageChanged && isInfoChanged) {
-      await uploadQR();
-      await updatePaymentInfo();
-    } else if (isImageChanged) {
-      await uploadQR();
-    } else if (isInfoChanged) {
-      await updatePaymentInfo();
-    } else {
-      Alert.alert('Lỗi', 'Không có thay đổi nào để cập nhật.');
+    try {
+      if (isInfoChanged) {
+        await updatePaymentInfo();
+      }
+
+      if (isImageChanged) {
+        await uploadQR();
+      }
+
+      if (!isInfoChanged && !isImageChanged) {
+        Alert.alert('Lỗi', 'Không có thay đổi nào để cập nhật.');
+      } else {
+        Alert.alert('Thành công', 'Đã cập nhật thông tin thành công');
+      }
+    } catch (error) {
+      console.log('Error updating payment information:', error);
+      Alert.alert('Thất bại', 'Không thể cập nhật thông tin. Vui lòng thử lại');
     }
   };
+
 
   // Calculate maximum width for picker based on longest bank name
   const longestBankName = banks.reduce((max, bank) => (bank.length > max ? bank.length : max), 0);

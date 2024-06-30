@@ -21,7 +21,7 @@ export async function getUser(phone_number, password) {
 
 export async function sendOtpToUser(email, password, first_name, last_name, phone_number) {
     try {
-        const response = await axios.post(apiAccount.registerPartner, {
+        const response = await axios.post(apiAccount.registerCustomer, {
             first_name,
             last_name,
             phone_number,

@@ -34,7 +34,7 @@ export async function sendOtpToUser(email, password, first_name, last_name, phon
         const status = error.response?.status;
 
         if (status === 400) {
-            Alert.alert('Đăng kí thất bại', 'Số điện thoại này đã được đăng ký bởi người khác.');
+            Alert.alert('Đăng kí thất bại', 'Số điện thoại hoặc email này đã được đăng ký bởi người khác.');
         } else {
             Alert.alert('Lỗi đăng kí', errorMessage);
         }

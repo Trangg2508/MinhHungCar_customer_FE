@@ -137,6 +137,7 @@ export default function ProfileScreen({ navigation }) {
         identification_card_number: IDCard,
         date_of_birth: formattedDob,
         driving_license: driveLicense,
+        email: email
       };
 
       const response = await axios.put(apiAccount.updateProfile, formData, {
@@ -246,7 +247,7 @@ export default function ProfileScreen({ navigation }) {
                   <Text style={styles.inputLabel}>Số điện thoại</Text>
                   <TextInput
                     clearButtonMode="while-editing"
-                    onChangeText={(phone) => setPhoneNum(phone)}
+                    // onChangeText={(phone) => setPhoneNum(phone)}
                     placeholder="0987654321"
                     placeholderTextColor="#6b7280"
                     style={styles.inputControl}
@@ -260,6 +261,7 @@ export default function ProfileScreen({ navigation }) {
                   <TextInput
                     autoCapitalize="none"
                     autoCorrect={false}
+                    // onChangeText={(email) => setEmail(email)}
                     clearButtonMode="while-editing"
                     keyboardType="email-address"
                     placeholder="abc123@gmail.com"

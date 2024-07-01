@@ -49,7 +49,7 @@ export default function CheckoutScreen() {
         if (parsedStartDate && parsedEndDate) {
             calculatePricing();
         }
-    }, [parsedStartDate, parsedEndDate]);
+    },);
 
     useEffect(() => {
         if (contractID) {
@@ -60,10 +60,15 @@ export default function CheckoutScreen() {
     const getCarDetail = async () => {
         try {
             const response = await axios.get(`https://minhhungcar.xyz/car/${carId}`);
-            setCarDetail(response.data);
+            setCarDetail(response.data.data);
+            console.log('Fetch successfully: ', response.data.message)
             setLoading(false);
         } catch (error) {
-            console.log('Fetch detail fail: ', error);
+            if (error.response.data.error_code === 10027) {
+                Alert.alert('Lỗi', 'Không thể xem được chi tiết xe lúc này. Vui lòng thử lại sau!')
+            } else {
+                console.log("Error: ", error.response.data.message)
+            }
         }
     };
 
@@ -83,11 +88,17 @@ export default function CheckoutScreen() {
                     },
                 }
             );
-            const id = response.data.contract.id;
+            const id = response.data.data.id;
+            console.log(id)
             setContractID(id - 1);
+            console.log("contractID", contractID)
             setLoading(false);
         } catch (error) {
-            console.log('Rent car fail: ', error);
+            if (error.response.data.error_code === 10049) {
+                Alert.alert('Lỗi thuê xe', 'Vui lòng thử lại sau')
+            } else {
+                console.log("Error: ", error.response.data.message)
+            }
         }
     };
 
@@ -103,7 +114,7 @@ export default function CheckoutScreen() {
                 }
             );
 
-            const { rent_price_quotation, insurance_price_quotation, total_amount, prepaid_amount } = response.data;
+            const { rent_price_quotation, insurance_price_quotation, total_amount, prepaid_amount } = response.data.data;
             setRentPricePerDay(rent_price_quotation);
             setInsurancePricePerDay(insurance_price_quotation);
             setTotalPrice(total_amount);
@@ -111,8 +122,11 @@ export default function CheckoutScreen() {
             setPayDirect(total_amount - prepaid_amount);
             setLoadingPrice(false);
         } catch (error) {
-            console.log('Failed to fetch pricing: ', error);
-            setLoadingPrice(false);
+            if (error.response.data.error_code === 10052) {
+                Alert.alert('Lỗi xuất đơn giá', 'Vui lòng thử lại sau')
+            } else {
+                console.log("Error: ", error.response.data.message)
+            }
         }
     };
 

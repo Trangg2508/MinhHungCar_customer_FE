@@ -79,10 +79,14 @@ export default function HistoryScreen() {
           Authorization: `Bearer ${token}`,
         },
       });
-      const contracts = response.data;
+      const contracts = response.data.data.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
       setTrip(contracts)
     } catch (error) {
-      console.log('Fail to get all contract: ', error)
+      if (error.response.data.error_code === 10034) {
+        Alert.alert('Lỗi', 'Không thể lấy danh sách hợp đồng')
+      } else {
+        console.log("Error: ", error.response.data.message)
+      }
     }
   }
 
@@ -108,11 +112,15 @@ export default function HistoryScreen() {
           Authorization: `Bearer ${token}`,
         },
       });
-      const payment_url = response.data.customer_payment_document.payment_url;
-      const qr_code_image = response.data.document.url;
+      const payment_url = response.data.data.customer_payment_document.payment_url;
+      const qr_code_image = response.data.data.document.url;
       navigation.navigate('PayMethod', { payment_url, qr_code_image })
     } catch (error) {
-      console.log("Fail to get last payment detail: ", error)
+      if (error.response.data.error_code === 10053) {
+        Alert.alert('Lỗi', 'Không thể lấy được chi tiết thanh toán gần nhất')
+      } else {
+        console.log("Error: ", error.response.data.message)
+      }
     }
   }
 

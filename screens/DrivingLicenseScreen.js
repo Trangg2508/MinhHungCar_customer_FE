@@ -62,10 +62,10 @@ export default function DrivingLicenseScreen() {
                     Authorization: `Bearer ${token}`,
                 },
             });
-            console.log('License uploaded:', response);
+            console.log('License uploaded:', response.data.message);
             Alert.alert('', 'Cập nhật thông tin giấy phép lái xe thành công!');
         } catch (error) {
-            console.log('Error uploading license:', error);
+            console.log('Error uploading license:', error.response.data.message);
             Alert.alert('Lỗi', 'Có một vài lỗi xảy ra khi tải lên hình ảnh. Vui lòng thử lại');
         } finally {
             setLoading(false);
@@ -111,20 +111,7 @@ export default function DrivingLicenseScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
-                {/* <View style={styles.licenseContainer}>
-                    <Text style={styles.title}>Số giấy phép lái xe</Text>
-                    <Text style={styles.subTitle}>Dãy 12 chữ số ở mặt trước GPLX</Text>
-                    <View style={styles.input}>
-                        <TextInput
-                            clearButtonMode="while-editing"
-                            onChangeText={licenseNum => setForm({ ...form, licenseNum })}
-                            placeholder="000000000000"
-                            placeholderTextColor="#6b7280"
-                            style={styles.inputControl}
-                            value={form.licenseNum}
-                        />
-                    </View>
-                </View> */}
+
                 <View style={styles.formAction}>
                     <TouchableOpacity onPress={handleUpload} disabled={loading || form.images.filter(image => image.uri).length < 2}>
                         <View style={[styles.btn, (loading || form.images.filter(image => image.uri).length < 2) && styles.btnDisabled]}>

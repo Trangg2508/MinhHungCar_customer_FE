@@ -120,10 +120,14 @@ export default function ListProductScreen({ navigation }) {
           Authorization: `Bearer ${token}`,
         },
       });
-      const filterCar = response.data;
+      const filterCar = response.data.data;
       setCarList(filterCar);
     } catch (error) {
-      console.log('Failed to filter car by date: ', error);
+      if (error.response.data.error_code === 10048) {
+        Alert.alert('Lỗi', 'Không thể tìm kiếm xe')
+      } else {
+        console.log("Error: ", error.response.data.message)
+      }
     }
   };
 
@@ -221,6 +225,10 @@ export default function ListProductScreen({ navigation }) {
 
     const isSelected = (categoryKey, option) => selectedOptions(categoryKey).includes(option);
 
+
+
+
+
     return (
       <Modal visible={openModal} animationType="slide" >
         <View style={styles.modalOverlay}>
@@ -249,7 +257,20 @@ export default function ListProductScreen({ navigation }) {
       </Modal>
     );
   };
-
+  const hasSelections = (categoryKey) => {
+    switch (categoryKey) {
+      case 'brands':
+        return selectedBrands.length > 0;
+      case 'seats':
+        return selectedSeats.length > 0;
+      case 'fuels':
+        return selectedFuels.length > 0;
+      case 'motions':
+        return selectedMotions.length > 0;
+      default:
+        return false;
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -290,47 +311,60 @@ export default function ListProductScreen({ navigation }) {
           {/* Category bar */}
           <ScrollView contentContainerStyle={styles.categoryBar} horizontal showsHorizontalScrollIndicator={false}>
             {categories.map(category => (
-              <TouchableOpacity key={category.key} onPress={() => handleCategoryPress(category)}>
-                <View style={styles.categoryItem}>
-                  <Image source={category.img} style={styles.categoryIcon} />
-                  <Text style={styles.categoryLabel}>{category.label}</Text>
-                </View>
+              <TouchableOpacity
+                key={category.key}
+                onPress={() => handleCategoryPress(category)}
+                style={[
+                  styles.categoryItem,
+                  hasSelections(category.key) ? styles.selectedCategoryItem : null
+                ]}
+              >
+                <Image source={category.img} style={styles.categoryIcon} />
+                <Text style={styles.categoryLabel}>{category.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
+
+
           {/* Car list */}
           <View style={styles.carListContainer}>
-            {carList.map((car) => (
-              <TouchableOpacity
-                key={car.id}
-                onPress={() => navigation.navigate('Detail', { carId: car.id, startDate: startDate, endDate: endDate })}
-                style={styles.carItem}>
-                <Image source={{ uri: car.images[0] }} style={styles.carImage} />
-                <View style={styles.carDetails}>
-                  <Text style={styles.carName}>
-                    {car.car_model.brand} {car.car_model.model} {car.car_model.year}
-                  </Text>
-
-
-                  <View style={styles.carFooter}>
-                    <View style={styles.starContainer}>
-                      <Image source={require('../assets/star.png')} style={styles.starIcon} />
-                      <Text style={styles.rating}>{car.rating}</Text>
+            {carList.length > 0 ? (
+              carList.map((car) => (
+                <TouchableOpacity
+                  key={car.id}
+                  onPress={() => navigation.navigate('Detail', { carId: car.id, startDate: startDate, endDate: endDate })}
+                  style={styles.carItem}
+                >
+                  <Image source={{ uri: car.images[0] }} style={styles.carImage} />
+                  <View style={styles.carDetails}>
+                    <Text style={styles.carName}>
+                      {car.car_model.brand} {car.car_model.model} {car.car_model.year}
+                    </Text>
+                    <View style={styles.carFooter}>
+                      <View style={styles.starContainer}>
+                        <Image source={require('../assets/star.png')} style={styles.starIcon} />
+                        <Text style={styles.rating}>{car.rating}</Text>
+                      </View>
+                      <View style={styles.tripContainer}>
+                        <Image source={require('../assets/completeTrip.png')} style={styles.tripIcon} />
+                        <Text style={styles.tripCount}>{car.total_trip} chuyến</Text>
+                      </View>
                     </View>
-                    <View style={styles.tripContainer}>
-                      <Image source={require('../assets/completeTrip.png')} style={styles.tripIcon} />
-                      <Text style={styles.tripCount}>{car.total_trip} chuyến</Text>
+                    <Divider style={{ marginTop: 15 }} />
+                    <View style={{ marginTop: 10, justifyContent: 'flex-end', alignItems: 'flex-end' }}>
+                      <Text style={styles.carPrice}>{car.price.toLocaleString('en-US')} VNĐ / ngày</Text>
                     </View>
                   </View>
-                  <Divider style={{ marginTop: 15 }} />
-                  <View style={{ marginTop: 10, justifyContent: 'flex-end', alignItems: 'flex-end' }}>
-                    <Text style={styles.carPrice}>{car.price.toLocaleString('en-US')} VNĐ / ngày</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={{ paddingHorizontal: 15, paddingTop: 20 }}>
+                <Text style={{ color: '#B4B4B8' }}>Không tìm thấy chiếc xe nào phù hợp với yêu cầu</Text>
+              </View>
+            )}
           </View>
+
         </ScrollView>
 
         {/* Open model */}
@@ -371,6 +405,34 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
   },
+  // categoryBar: {
+  //   paddingHorizontal: 18,
+  //   paddingVertical: 5,
+  //   flexDirection: 'row',
+  // },
+  // categoryItem: {
+  // width: 100,
+  // paddingVertical: 10,
+  // paddingHorizontal: 3,
+  // borderRadius: 12,
+  // flexDirection: 'column',
+  // alignItems: 'center',
+  // marginHorizontal: 6,
+  // backgroundColor: 'white',
+  // borderColor: '#DADADA',
+  // borderWidth: 1,
+  // },
+  // categoryIcon: {
+  //   width: 25,
+  //   height: 25,
+  //   marginBottom: 12,
+  // },
+  // categoryLabel: {
+  //   fontWeight: '600',
+  //   fontSize: 13,
+  //   lineHeight: 18,
+  //   color: '#252117',
+  // },
   categoryBar: {
     paddingHorizontal: 18,
     paddingVertical: 5,
@@ -388,16 +450,19 @@ const styles = StyleSheet.create({
     borderColor: '#DADADA',
     borderWidth: 1,
   },
+  selectedCategoryItem: {
+    borderColor: '#773BFF',
+    borderWidth: 1,
+  },
   categoryIcon: {
-    width: 25,
-    height: 25,
-    marginBottom: 12,
+    width: 24,
+    height: 24,
+    marginBottom: 5,
   },
   categoryLabel: {
-    fontWeight: '600',
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#252117',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000',
   },
   carListContainer: {
     paddingHorizontal: 24,

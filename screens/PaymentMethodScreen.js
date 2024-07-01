@@ -21,7 +21,7 @@ export default function PaymentMethodScreen() {
                     <Image source={require('../assets/vnpayLogo.png')} style={styles.vnpayLogo} />
                     <Image source={require('../assets/right.png')} style={styles.arrowIcon} />
                 </TouchableOpacity>
-                <View style={styles.dividerContainer}>
+                {/* <View style={styles.dividerContainer}>
                     <Divider style={styles.divider} />
                     <Text style={styles.dividerText}>hoặc với mã QR</Text>
                     <Divider style={styles.divider} />
@@ -30,7 +30,7 @@ export default function PaymentMethodScreen() {
                     <View style={styles.QR}>
                         <Image style={styles.qrImage} source={{ uri: qr_code_image }} />
                     </View>
-                </View>
+                </View> */}
             </View>
         </SafeAreaView>
     );

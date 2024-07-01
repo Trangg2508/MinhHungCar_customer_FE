@@ -56,11 +56,15 @@ export default function DetailScreen() {
   const getCarDetail = async () => {
     try {
       const response = await axios.get(`https://minhhungcar.xyz/car/${carId}`)
-      setCarDetail(response.data);
-      console.log('Fetch detail successfully: ', response.data)
+      setCarDetail(response.data.data);
+      console.log('Fetch detail successfully: ', response.data.message)
       setLoading(false)
     } catch (error) {
-      console.log('Fetch detail fail: ', error)
+      if (error.response.data.error_code === 10027) {
+        Alert.alert('Lỗi', 'Không thể xem được chi tiết xe lúc này. Vui lòng thử lại sau!')
+      } else {
+        console.log("Error: ", error.response.data.message)
+      }
     }
   }
 

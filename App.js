@@ -28,6 +28,7 @@ import PaymentMethodScreen from './screens/PaymentMethodScreen';
 import DetailTrip from './screens/DetailTrip';
 import PaymentScreen from './screens/PaymentScreen';
 import SuccessScreen from './screens/SuccessScreen';
+import UploadQR from './screens/UploadQR';
 
 const Stack = createNativeStackNavigator();
 const Bottoms = createBottomTabNavigator();
@@ -244,6 +245,14 @@ const AuthenticatedStack = () => {
       <Stack.Screen
         name='Success'
         component={SuccessScreen}
+        options={{
+          headerBackTitleVisible: false,
+          headerShown: false
+        }}
+      />
+      <Stack.Screen
+        name='UpQR'
+        component={UploadQR}
         options={{
           headerBackTitleVisible: false,
           headerShown: false

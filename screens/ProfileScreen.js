@@ -33,7 +33,6 @@ export default function ProfileScreen({ navigation }) {
   const [year, setYear] = useState('');
 
 
-
   const [isLoading, setLoading] = useState(true);
 
   const [avatarURL, setAvatarURL] = useState(null);
@@ -55,23 +54,27 @@ export default function ProfileScreen({ navigation }) {
         },
       });
 
-      const dobDate = new Date(response.data.date_of_birth);
+      const dobDate = new Date(response.data.data.date_of_birth);
       setDay(dobDate.getDate().toString().padStart(2, '0'));
       setMonth((dobDate.getMonth() + 1).toString().padStart(2, '0'));
       setYear(dobDate.getFullYear().toString());
 
-      setFirstName(response.data.first_name || '');
-      setLastName(response.data.last_name || '');
-      setPhoneNum(response.data.phone_number || '');
-      setIDCard(response.data.identification_card_number || '');
-      setEmail(response.data.email || '');
-      setDriveLicense(response.data.driving_license || '');
-      setAvatarURL(response.data.avatar_url || null);
+      setFirstName(response.data.data.first_name || '');
+      setLastName(response.data.data.last_name || '');
+      setPhoneNum(response.data.data.phone_number || '');
+      setIDCard(response.data.data.identification_card_number || '');
+      setEmail(response.data.data.email || '');
+      setDriveLicense(response.data.data.driving_license || '');
+      setAvatarURL(response.data.data.avatar_url || null);
 
-      console.log('Fetch profile successfully ', response.data);
+      console.log('Fetch profile successfully ', response.data.data);
       setLoading(false);
     } catch (error) {
-      console.log('Error fetching data:', error);
+      if (error.response.data.error_code === 10039) {
+        Alert.alert('', 'Không thể lấy thông tin tài khoản')
+      } else {
+        console.log("Error: ", error.response.data.message)
+      }
     }
   };
 
@@ -144,7 +147,7 @@ export default function ProfileScreen({ navigation }) {
       });
 
       if (response.status === 200 || response.status === 201) {
-        console.log('Update successfully: ', response.data);
+        console.log('Update successfully: ', response.data.data);
         if (image.selectedImage) {
           await uploadImage();
         }
@@ -176,8 +179,8 @@ export default function ProfileScreen({ navigation }) {
         },
       });
       if (response.status === 200 || response.status === 201) {
-        setAvatarURL(response.data.url);
-        console.log('Upload image successfully: ', response.data);
+        setAvatarURL(response.data.data.url);
+        console.log('Upload image successfully: ', response.data.data);
       } else {
         console.log('Unexpected response status for image upload:', response.status);
         Alert.alert('Lỗi', 'Đã xảy ra lỗi khi tải lên hình ảnh.');
@@ -319,19 +322,6 @@ export default function ProfileScreen({ navigation }) {
                   />
                 </View>
 
-                <View style={styles.formActionDriving}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      navigation.navigate('Driving')
-                    }}>
-                    <View style={styles.btnDriving}>
-                      <Image style={{ width: 25, height: 25, marginRight: 10 }} source={require('../assets/IDCard.png')} />
-                      <Text style={styles.btnDrivingText}>Giấy phép lái xe</Text>
-                      <Image style={{ width: 20, height: 20, }} source={require('../assets/right.png')} />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-
                 <View style={styles.formAction}>
                   <TouchableOpacity onPress={submitForm}>
                     <View style={styles.btn}>
@@ -347,6 +337,7 @@ export default function ProfileScreen({ navigation }) {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

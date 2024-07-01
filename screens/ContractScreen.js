@@ -18,6 +18,7 @@ export default function ContractScreen({ navigation }) {
   const [isLoading, setLoading] = useState(true);
   const [isChecked, setIsChecked] = useState(false);
   const webViewRef = useRef();
+  console.log("contractID", contractID)
 
 
   useEffect(() => {
@@ -32,15 +33,19 @@ export default function ContractScreen({ navigation }) {
           Authorization: `Bearer ${token}`
         }
       });
-      setPdfURL(response.data.url);
-      setContractStatus(response.data.status);
-      setLoading(false);
+      setPdfURL(response.data.data.url);
+      setContractStatus(response.data.data.status);
+      setTimeout(() => {
+        setLoading(false);
+      }, 2500);
     } catch (error) {
       setLoading(false);
-      if (error.response && error.response.status === 404) {
-        Alert.alert('Lỗi', 'Hợp đồng không tồn tại.');
+      if (error.response.data.error_code === 10051) {
+        Alert.alert('Lỗi', 'Không thể xem chi tiết hợp đồng lúc này. Vui lòng thử lại sau');
+      } else if (error.response.data.error_code === 10036) {
+        Alert.alert('Lỗi', 'Không thể lấy được trạng thái hợp đồng');
       } else {
-        Alert.alert('Lỗi', 'Không thể tải thông tin hợp đồng. Vui lòng thử lại sau.');
+        console.log("Error: ", error.response.data.message)
       }
     }
   };
@@ -63,7 +68,7 @@ export default function ContractScreen({ navigation }) {
           }
         }
       );
-      const { payment_url, qr_code_image } = response.data;
+      const { payment_url, qr_code_image } = response.data.data;
       Alert.alert(
         'Chúc mừng',
         'Bạn đã chấp thuận hợp đồng thành công! Vui lòng thanh toán',
@@ -75,7 +80,12 @@ export default function ContractScreen({ navigation }) {
         ]
       );
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể ký hợp đồng. Vui lòng thử lại!');
+      if (error.response.data.error_code === 10050) {
+        Alert.alert('Lỗi', 'Không thể chấp thuận hợp đồng lúc này. Vui lòng thử lại sau');
+      } else {
+        console.log('Sign contract error: ', error.response.data.message);
+        Alert.alert('Lỗi', error.response.data.message);
+      }
     }
   };
 
